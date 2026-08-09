@@ -3,16 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { supabase } from '../../lib/supabase';
-import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy, Key, Refresh, KeySquare } from 'iconsax-react';
+import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy, Key, Refresh } from 'iconsax-react';
 
 export const OnboardingView: React.FC = () => {
   const { setCurrentView, setSession, fetchHouseholdData, setOnboardingCompleted } = useStore();
   
-  const [authMode, setAuthMode] = useState<'welcome' | 'login' | 'signup_create' | 'signup_join' | 'forgot_password' | 'verify_otp'>('welcome');
+  const [authMode, setAuthMode] = useState<'welcome' | 'login' | 'signup_create' | 'signup_join' | 'forgot_password'>('welcome');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [newPasswordInput, setNewPasswordInput] = useState('');
   const [name, setName] = useState('');
   const [householdName, setHouseholdName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -61,7 +59,7 @@ export const OnboardingView: React.FC = () => {
     }
   };
 
-  // Handle Forgot Password Reset Email
+  // Handle Forgot Password Reset Email Link
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
@@ -84,50 +82,6 @@ export const OnboardingView: React.FC = () => {
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Error sending password reset email.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle 6-Digit OTP Verification & Password Update
-  const handleVerifyOtpAndResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !otpCode || !newPasswordInput) {
-      setErrorMsg('Please fill in email, 6-digit code, and new password.');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMsg(null);
-
-    try {
-      // Verify OTP token sent to email
-      const { data: verifyData, error: verifyErr } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode.trim(),
-        type: 'recovery'
-      });
-
-      if (verifyErr) {
-        setErrorMsg(verifyErr.message);
-        setLoading(false);
-        return;
-      }
-
-      // Update password
-      const { error: updateErr } = await supabase.auth.updateUser({
-        password: newPasswordInput
-      });
-
-      if (updateErr) {
-        setErrorMsg(updateErr.message);
-      } else {
-        if (verifyData.session) setSession(verifyData.session);
-        setOnboardingCompleted(true);
-        setCurrentView('dashboard');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error verifying reset code.');
     } finally {
       setLoading(false);
     }
@@ -536,7 +490,7 @@ export const OnboardingView: React.FC = () => {
             </motion.form>
           )}
 
-          {/* FORGOT PASSWORD FORM MODE */}
+          {/* FORGOT PASSWORD FORM MODE (EMAIL RESET LINK ONLY) */}
           {authMode === 'forgot_password' && (
             <motion.form
               key="forgot-form"
@@ -558,31 +512,20 @@ export const OnboardingView: React.FC = () => {
               </div>
 
               {resetSent ? (
-                <div className="p-5 rounded-2xl bg-[#EBF3ED] text-center space-y-3 border-0">
-                  <TickCircle size={36} variant="Bold" className="text-[#4A7C59] mx-auto" />
-                  <h4 className="font-bold text-base text-[#231F1E]">Reset Email Dispatched! ✉️</h4>
-                  <p className="text-xs text-[#6B6560]">
-                    Click the link inside your email, or tap below if you received a 6-digit reset code.
+                <div className="p-6 rounded-3xl bg-[#EBF3ED] text-center space-y-3 border-0">
+                  <TickCircle size={40} variant="Bold" className="text-[#4A7C59] mx-auto" />
+                  <h4 className="font-bold text-lg text-[#231F1E]">Reset Link Dispatched! ✉️</h4>
+                  <p className="text-xs text-[#6B6560] leading-relaxed">
+                    We sent a password reset link to <span className="font-bold text-[#231F1E]">{email}</span>. Click the link inside your email inbox to set a new password!
                   </p>
 
-                  <div className="flex flex-col gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode('verify_otp')}
-                      className="w-full py-3 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-xs transition-all border-0 cursor-pointer flex items-center justify-center space-x-1.5"
-                    >
-                      <KeySquare size={16} variant="Bold" />
-                      <span>Enter 6-Digit Email Code →</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode('login')}
-                      className="w-full py-2.5 rounded-2xl bg-transparent text-[#6B6560] font-semibold text-xs border-0 cursor-pointer"
-                    >
-                      Return to Login
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                    className="w-full mt-2 py-3 rounded-2xl bg-[#231F1E] hover:bg-black text-white font-bold text-xs transition-all border-0 cursor-pointer"
+                  >
+                    Return to Login
+                  </button>
                 </div>
               ) : (
                 <>
@@ -594,7 +537,7 @@ export const OnboardingView: React.FC = () => {
 
                   <div className="space-y-3">
                     <p className="text-xs text-[#6B6560]">
-                      Enter your account email address and we'll dispatch a link/code to reset your password.
+                      Enter your account email address and we'll send a password reset link directly to your inbox.
                     </p>
 
                     <div>
@@ -611,16 +554,6 @@ export const OnboardingView: React.FC = () => {
                         />
                       </div>
                     </div>
-
-                    <div className="pt-1 text-center">
-                      <button
-                        type="button"
-                        onClick={() => setAuthMode('verify_otp')}
-                        className="text-xs font-semibold text-[#EF713F] hover:underline border-0 bg-transparent cursor-pointer"
-                      >
-                        Have a 6-digit email reset code already?
-                      </button>
-                    </div>
                   </div>
 
                   <button
@@ -629,100 +562,16 @@ export const OnboardingView: React.FC = () => {
                     className="w-full py-3.5 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
                   >
                     {loading ? (
-                      <span>Dispatching Link...</span>
+                      <span>Sending Link...</span>
                     ) : (
                       <>
                         <Refresh size={18} variant="Linear" />
-                        <span>Send Reset Link to Email</span>
+                        <span>Send Password Reset Link to Email</span>
                       </>
                     )}
                   </button>
                 </>
               )}
-            </motion.form>
-          )}
-
-          {/* VERIFY 6-DIGIT EMAIL CODE MODE */}
-          {authMode === 'verify_otp' && (
-            <motion.form
-              key="otp-form"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              onSubmit={handleVerifyOtpAndResetPassword}
-              className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
-            >
-              <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
-                <h3 className="font-bold text-xl text-[#231F1E]">Enter Reset Code</h3>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('login')}
-                  className="text-xs font-semibold text-[#EF713F] border-0 bg-transparent cursor-pointer"
-                >
-                  ← Back to Login
-                </button>
-              </div>
-
-              {errorMsg && (
-                <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
-                  ⚠️ {errorMsg}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">Registered Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@coupletodo.app"
-                    className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">6-Digit Code from Email</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={8}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="E.g. 123456"
-                    className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-center font-mono font-extrabold text-lg text-[#EF713F] tracking-widest border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">New Password</label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={newPasswordInput}
-                    onChange={(e) => setNewPasswordInput(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
-              >
-                {loading ? (
-                  <span>Updating Password...</span>
-                ) : (
-                  <>
-                    <KeySquare size={18} variant="Bold" />
-                    <span>Verify Code & Reset Password</span>
-                  </>
-                )}
-              </button>
             </motion.form>
           )}
 
@@ -869,7 +718,7 @@ export const OnboardingView: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               onSubmit={handleJoinHousehold}
-              className="bg-[#white] p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none bg-white"
+              className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
             >
               <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
                 <h3 className="font-bold text-xl text-[#231F1E]">Join Household with Key</h3>
