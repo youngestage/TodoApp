@@ -179,16 +179,22 @@ export const OnboardingView: React.FC = () => {
       let targetHouseholdId = `hh-${targetCode}`;
 
       // 1. Check Supabase households table (case insensitive match)
-      const { data: hhData } = await supabase
-        .from('households')
-        .select('*')
-        .eq('invite_code', targetCode)
-        .maybeSingle();
+      try {
+        const { data: hhData } = await supabase
+          .from('households')
+          .select('*')
+          .eq('invite_code', targetCode)
+          .maybeSingle();
 
-      if (hhData) {
-        matchedHouseholdName = hhData.name;
-        targetHouseholdId = hhData.id;
-      } else {
+        if (hhData) {
+          matchedHouseholdName = hhData.name;
+          targetHouseholdId = hhData.id;
+        }
+      } catch (e) {
+        console.warn('Supabase lookup warning, fallback to pairing:', e);
+      }
+
+      if (!targetHouseholdId || targetHouseholdId.startsWith('hh-')) {
         // 2. Check localStorage pairing registry fallback
         const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
         const foundLocal = keysMap[targetCode];
