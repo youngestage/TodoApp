@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { BudgetCategoryType } from '../../types';
 import { Avatar } from '../ui/Avatar';
+import { supabase } from '../../lib/supabase';
 import {
   requestNotificationPermission,
   getNotificationPermissionState,
@@ -25,7 +26,9 @@ import {
   Card,
   Camera,
   Notification,
-  LogoutCurve
+  LogoutCurve,
+  Danger,
+  CloseCircle
 } from 'iconsax-react';
 
 export const SettingsView: React.FC = () => {
@@ -59,6 +62,11 @@ export const SettingsView: React.FC = () => {
   // Avatar upload local state
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
+
+  // Danger Zone / Delete Account state
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Preset DiceBear colorful avatar choices matching app theme
   const presetAvatars = [
@@ -158,6 +166,23 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const handleDeleteAccountConfirm = async () => {
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') return;
+    setIsDeleting(true);
+
+    try {
+      if (currentUser?.id) {
+        await supabase.from('profiles').delete().eq('id', currentUser.id);
+      }
+      await logout();
+    } catch (err) {
+      await logout();
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20 md:pb-6 select-none max-w-4xl mx-auto">
       
@@ -224,7 +249,7 @@ export const SettingsView: React.FC = () => {
             exit={{ opacity: 0, y: -6 }}
             className="space-y-4"
           >
-            {/* Household Partner Invite Link (Always Available for Existing Users) */}
+            {/* Household Partner Invite Link */}
             <div className="bg-white rounded-3xl p-6 space-y-4 border-0 shadow-none">
               <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
                 <div>
@@ -372,6 +397,28 @@ export const SettingsView: React.FC = () => {
                     {permissionState.toUpperCase()}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* DANGER ZONE: DELETE ACCOUNT CARD */}
+            <div className="bg-white rounded-3xl p-6 space-y-4 border-2 border-[#FFF5F0] shadow-none">
+              <div className="flex items-center justify-between border-b border-[#FFF5F0] pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="p-2 rounded-xl bg-[#FFF5F0] text-[#EF713F]">
+                    <Danger size={20} variant="Bold" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-[#EF713F]">Danger Zone</h3>
+                    <p className="text-xs text-[#6B6560]">Permanently delete your profile and household data</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="px-4 py-2 rounded-2xl bg-[#FFF5F0] hover:bg-[#EF713F] text-[#EF713F] hover:text-white font-bold text-xs transition-colors border-0 cursor-pointer"
+                >
+                  Delete Account
+                </button>
               </div>
             </div>
           </motion.div>
@@ -639,6 +686,57 @@ export const SettingsView: React.FC = () => {
         )}
 
       </AnimatePresence>
+
+      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs cursor-pointer" onClick={() => setDeleteModalOpen(false)} />
+          <div className="relative z-10 w-full max-w-md bg-white rounded-3xl p-6 space-y-5 shadow-2xl border-0 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#FFF5F0] text-[#EF713F] flex items-center justify-center mx-auto">
+              <Danger size={24} variant="Bold" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-bold text-xl text-[#231F1E]">Delete Account Permanently?</h3>
+              <p className="text-xs text-[#6B6560]">
+                This will delete your profile data and log you out. This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1 text-left">
+              <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase">
+                Type <span className="text-[#EF713F] font-bold">DELETE</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm font-mono text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
+              />
+            </div>
+
+            <div className="flex items-center space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                className="flex-1 py-3 rounded-2xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] font-bold text-xs border-0 cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={deleteConfirmText.trim().toUpperCase() !== 'DELETE' || isDeleting}
+                onClick={handleDeleteAccountConfirm}
+                className="flex-1 py-3 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] disabled:opacity-50 text-white font-bold text-xs transition-colors border-0 cursor-pointer flex items-center justify-center space-x-1"
+              >
+                {isDeleting ? <span>Deleting...</span> : <span>Confirm Delete</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

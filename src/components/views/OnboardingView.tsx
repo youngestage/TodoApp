@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { supabase } from '../../lib/supabase';
-import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy, Key } from 'iconsax-react';
+import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy, Key, Refresh } from 'iconsax-react';
 
 export const OnboardingView: React.FC = () => {
   const { setCurrentView, setSession, fetchHouseholdData, setOnboardingCompleted } = useStore();
   
-  const [authMode, setAuthMode] = useState<'welcome' | 'login' | 'signup_create' | 'signup_join'>('welcome');
+  const [authMode, setAuthMode] = useState<'welcome' | 'login' | 'signup_create' | 'signup_join' | 'forgot_password'>('welcome');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -17,6 +17,7 @@ export const OnboardingView: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
   const [createdInviteCode, setCreatedInviteCode] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
 
@@ -48,10 +49,39 @@ export const OnboardingView: React.FC = () => {
           await fetchHouseholdData(prof.household_id);
         }
 
+        setOnboardingCompleted(true);
         setCurrentView('dashboard');
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected authentication error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Forgot Password Reset Email
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) {
+        setErrorMsg(error.message);
+      } else {
+        setResetSent(true);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error sending password reset email.');
     } finally {
       setLoading(false);
     }
@@ -250,7 +280,6 @@ export const OnboardingView: React.FC = () => {
   };
 
   const handleContinueToDashboard = () => {
-    // Set 1-member household state for Partner A
     useStore.setState((state) => ({
       currentUser: {
         id: state.currentUser.id || 'usr_partner_a',
@@ -420,7 +449,16 @@ export const OnboardingView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">Password</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('forgot_password')}
+                      className="text-xs font-semibold text-[#EF713F] hover:underline border-0 bg-transparent cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
                   <div className="relative flex items-center">
                     <Lock size={18} variant="Linear" className="absolute left-3.5 text-[#6B6560]" />
                     <input
@@ -449,6 +487,90 @@ export const OnboardingView: React.FC = () => {
                   </>
                 )}
               </button>
+            </motion.form>
+          )}
+
+          {/* FORGOT PASSWORD FORM MODE */}
+          {authMode === 'forgot_password' && (
+            <motion.form
+              key="forgot-form"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              onSubmit={handleForgotPassword}
+              className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
+            >
+              <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
+                <h3 className="font-bold text-xl text-[#231F1E]">Reset Password</h3>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('login')}
+                  className="text-xs font-semibold text-[#EF713F] border-0 bg-transparent cursor-pointer"
+                >
+                  ← Back to Login
+                </button>
+              </div>
+
+              {resetSent ? (
+                <div className="p-5 rounded-2xl bg-[#EBF3ED] text-center space-y-2 border-0">
+                  <TickCircle size={36} variant="Bold" className="text-[#4A7C59] mx-auto" />
+                  <h4 className="font-bold text-base text-[#231F1E]">Reset Link Dispatched! ✉️</h4>
+                  <p className="text-xs text-[#6B6560]">
+                    We sent a password reset link to <span className="font-bold">{email}</span>. Please check your inbox.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                    className="w-full mt-3 py-3 rounded-2xl bg-[#231F1E] hover:bg-black text-white font-bold text-xs transition-all border-0 cursor-pointer"
+                  >
+                    Return to Login
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {errorMsg && (
+                    <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
+                      ⚠️ {errorMsg}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <p className="text-xs text-[#6B6560]">
+                      Enter your account email address and we'll dispatch a link to reset your password.
+                    </p>
+
+                    <div>
+                      <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">Registered Email</label>
+                      <div className="relative flex items-center">
+                        <Sms size={18} variant="Linear" className="absolute left-3.5 text-[#6B6560]" />
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@coupletodo.app"
+                          className="w-full pl-10 pr-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
+                  >
+                    {loading ? (
+                      <span>Dispatching Link...</span>
+                    ) : (
+                      <>
+                        <Refresh size={18} variant="Linear" />
+                        <span>Send Reset Link to Email</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </motion.form>
           )}
 
