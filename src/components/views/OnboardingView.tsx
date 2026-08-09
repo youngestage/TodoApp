@@ -144,19 +144,10 @@ export const OnboardingView: React.FC = () => {
       <div className="relative z-10 w-full max-w-xl space-y-6">
         
         {/* Top Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#FAF6EB] text-[#CF9130] text-xs font-semibold border-0">
-            <Heart size={14} variant="Bold" className="text-[#EF713F]" />
-            <span>Couples Studio PWA</span>
-          </div>
-
+        <div className="text-center">
           <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-[#231F1E] tracking-tight leading-tight">
             Harmonious household budgeting & joint tasks.
           </h1>
-
-          <p className="text-[#6B6560] text-xs sm:text-sm max-w-md mx-auto">
-            Organize shared expenses, divide responsibilities with joint completion mechanics, and chat in context.
-          </p>
         </div>
 
         {/* Dynamic Card Content */}
@@ -520,11 +511,6 @@ export const OnboardingView: React.FC = () => {
           )}
 
         </AnimatePresence>
-
-        <div className="flex items-center justify-center space-x-2 text-xs text-[#6B6560] pt-2">
-          <ShieldSecurity size={16} variant="Bold" className="text-[#4A7C59]" />
-          <span>Max capacity: 2 partners per household • Private & End-to-End Encrypted</span>
-        </div>
       </div>
     </div>
   );
