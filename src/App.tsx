@@ -40,6 +40,10 @@ export default function App() {
       }
     });
 
+    if (window.location.hash.includes('type=recovery') || window.location.pathname.includes('reset-password')) {
+      setResetPasswordModalOpen(true);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         setSession(session);
