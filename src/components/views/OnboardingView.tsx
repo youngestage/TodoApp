@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy, Key } from 'iconsax-react';
 
 export const OnboardingView: React.FC = () => {
-  const { setCurrentView, setSession, fetchHouseholdData } = useStore();
+  const { setCurrentView, setSession, fetchHouseholdData, setOnboardingCompleted } = useStore();
   
   const [authMode, setAuthMode] = useState<'welcome' | 'login' | 'signup_create' | 'signup_join'>('welcome');
   const [email, setEmail] = useState('');
@@ -232,6 +232,7 @@ export const OnboardingView: React.FC = () => {
         }
       }));
 
+      setOnboardingCompleted(true);
       setCurrentView('dashboard');
 
     } catch (err: any) {
@@ -272,10 +273,12 @@ export const OnboardingView: React.FC = () => {
       }
     }));
 
+    setOnboardingCompleted(true);
     setCurrentView('dashboard');
   };
 
   const handleDemoBypass = () => {
+    setOnboardingCompleted(true);
     setCurrentView('dashboard');
   };
 

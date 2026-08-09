@@ -23,25 +23,30 @@ import { NotificationsDrawer } from './components/views/NotificationsDrawer';
 import { WelcomeWoosh } from './components/ui/WelcomeWoosh';
 
 export default function App() {
-  const { currentView, setCurrentView, setSession, isNotificationsOpen } = useStore();
+  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen } = useStore();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSession(session);
-        if (currentView === 'onboarding') setCurrentView('dashboard');
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setSession(session);
-        if (currentView === 'onboarding') setCurrentView('dashboard');
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Strict RBAC Route Guard: Lock main app routes until onboarding key flow is completed
+  useEffect(() => {
+    if (!isOnboardingCompleted && currentView !== 'onboarding') {
+      setCurrentView('onboarding');
+    }
+  }, [isOnboardingCompleted, currentView, setCurrentView]);
 
   const renderCurrentView = () => {
     switch (currentView) {

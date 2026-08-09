@@ -26,6 +26,8 @@ interface StoreState {
 
   currentView: ViewMode;
   setCurrentView: (view: ViewMode) => void;
+  isOnboardingCompleted: boolean;
+  setOnboardingCompleted: (completed: boolean) => void;
   currentUser: User;
   partnerUser: User;
   updateUserAvatar: (url: string) => void;
@@ -199,6 +201,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set({
       session: null,
       currentView: 'onboarding',
+      isOnboardingCompleted: false,
       tasks: [],
       transactions: [],
       recurringBills: [],
@@ -339,6 +342,8 @@ export const useStore = create<StoreState>((set, get) => ({
 
   currentView: 'onboarding',
   setCurrentView: (view) => set({ currentView: view, isFullChatActive: false }),
+  isOnboardingCompleted: false,
+  setOnboardingCompleted: (completed) => set({ isOnboardingCompleted: completed }),
   currentUser: defaultUserLeslie,
   partnerUser: defaultUserAsa,
   updateUserAvatar: (url) => set((state) => ({
