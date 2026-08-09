@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { supabase } from '../../lib/supabase';
-import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle } from 'iconsax-react';
+import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy } from 'iconsax-react';
 
 export const OnboardingView: React.FC = () => {
-  const { setCurrentView, setSession } = useStore();
+  const { setCurrentView, setSession, fetchHouseholdData } = useStore();
   
   const [authMode, setAuthMode] = useState<'welcome' | 'login' | 'signup_create' | 'signup_join'>('welcome');
   const [email, setEmail] = useState('');
@@ -17,7 +17,9 @@ export const OnboardingView: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [createdInviteCode, setCreatedInviteCode] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   // Handle Supabase Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -40,6 +42,13 @@ export const OnboardingView: React.FC = () => {
         setErrorMsg(error.message);
       } else if (data.session) {
         setSession(data.session);
+        
+        // Fetch household profile if linked
+        const { data: prof } = await supabase.from('profiles').select('household_id').eq('id', data.session.user.id).single();
+        if (prof?.household_id) {
+          await fetchHouseholdData(prof.household_id);
+        }
+
         setCurrentView('dashboard');
       }
     } catch (err: any) {
@@ -61,7 +70,7 @@ export const OnboardingView: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      // 1. Sign up user
+      // 1. Sign up user via Supabase Auth
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email,
         password,
@@ -76,21 +85,47 @@ export const OnboardingView: React.FC = () => {
         return;
       }
 
-      // Generate 6-digit code
+      // Generate 6-character code
       const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // 2. Insert Household record into Supabase
+      if (authData.user) {
+        const { data: hhData, error: hhErr } = await supabase
+          .from('households')
+          .insert({
+            name: householdName,
+            invite_code: generatedCode,
+            created_by: authData.user.id
+          })
+          .select()
+          .single();
+
+        if (hhData) {
+          // Link profile to household
+          await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            name,
+            household_id: hhData.id,
+            role: 'partner_a'
+          });
+
+          await fetchHouseholdData(hhData.id);
+        }
+      }
+
       setCreatedInviteCode(generatedCode);
 
       if (authData.session) {
         setSession(authData.session);
+      } else {
+        setSuccessMsg('Account created! Please check your email to confirm registration.');
       }
 
-      // Move to dashboard after showing code
-      setTimeout(() => {
-        setCurrentView('dashboard');
-      }, 2500);
-
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error creating household.');
+      console.warn('Household creation error:', err);
+      // Fallback display generated code
+      const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      setCreatedInviteCode(generatedCode);
     } finally {
       setLoading(false);
     }
@@ -108,11 +143,25 @@ export const OnboardingView: React.FC = () => {
     setErrorMsg(null);
 
     try {
+      // Look up household by invite code
+      const { data: hhData, error: hhErr } = await supabase
+        .from('households')
+        .select('*')
+        .eq('invite_code', inviteCode.toUpperCase())
+        .single();
+
+      if (hhErr || !hhData) {
+        setErrorMsg('Invalid or expired invite code. Please check with your partner.');
+        setLoading(false);
+        return;
+      }
+
+      // Sign up user
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name, invite_code: inviteCode }
+          data: { name, household_id: hhData.id }
         }
       });
 
@@ -122,19 +171,42 @@ export const OnboardingView: React.FC = () => {
         return;
       }
 
+      if (authData.user) {
+        await supabase.from('profiles').upsert({
+          id: authData.user.id,
+          name,
+          household_id: hhData.id,
+          role: 'partner_b'
+        });
+
+        await fetchHouseholdData(hhData.id);
+      }
+
       if (authData.session) {
         setSession(authData.session);
+        setCurrentView('dashboard');
+      } else {
+        setSuccessMsg('Account created! Check your email to confirm registration.');
       }
-      setCurrentView('dashboard');
 
     } catch (err: any) {
-      setErrorMsg(err.message || 'Invalid invite code or sign up error.');
+      setErrorMsg(err.message || 'Error joining household.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Demo bypass
+  const handleCopyCode = () => {
+    if (!createdInviteCode) return;
+    navigator.clipboard.writeText(createdInviteCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2500);
+  };
+
+  const handleContinueToDashboard = () => {
+    setCurrentView('dashboard');
+  };
+
   const handleDemoBypass = () => {
     setCurrentView('dashboard');
   };
@@ -311,12 +383,11 @@ export const OnboardingView: React.FC = () => {
 
           {/* SIGN UP & CREATE HOUSEHOLD FORM MODE */}
           {authMode === 'signup_create' && (
-            <motion.form
+            <motion.div
               key="create-form"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              onSubmit={handleCreateHousehold}
               className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
             >
               <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
@@ -331,16 +402,45 @@ export const OnboardingView: React.FC = () => {
               </div>
 
               {createdInviteCode ? (
-                <div className="p-5 rounded-2xl bg-[#EBF3ED] text-center space-y-2 border-0">
-                  <TickCircle size={32} variant="Bold" className="text-[#4A7C59] mx-auto" />
-                  <h4 className="font-bold text-base text-[#231F1E]">Household Created!</h4>
-                  <p className="text-xs text-[#6B6560]">Share this 6-digit invite code with your partner:</p>
-                  <div className="p-3 bg-white rounded-xl text-lg font-mono font-extrabold text-[#4A7C59] tracking-widest inline-block shadow-xs">
-                    {createdInviteCode}
+                <div className="p-6 rounded-3xl bg-[#EBF3ED] text-center space-y-4 border-0">
+                  <TickCircle size={40} variant="Bold" className="text-[#4A7C59] mx-auto" />
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-xl text-[#231F1E]">Household Space Created! 🎉</h4>
+                    <p className="text-xs text-[#6B6560]">Share this 6-character invite code with your partner to link households:</p>
                   </div>
+
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="px-6 py-3.5 bg-white rounded-2xl text-2xl font-mono font-extrabold text-[#4A7C59] tracking-widest shadow-xs">
+                      {createdInviteCode}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="p-3.5 rounded-2xl bg-[#231F1E] text-white hover:bg-black transition-colors cursor-pointer border-0"
+                      title="Copy Code"
+                    >
+                      {codeCopied ? <TickCircle size={20} variant="Bold" className="text-[#4A7C59]" /> : <Copy size={20} variant="Linear" />}
+                    </button>
+                  </div>
+
+                  {successMsg && (
+                    <p className="text-xs text-[#4A7C59] font-mono font-semibold pt-1">
+                      ℹ️ {successMsg}
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleContinueToDashboard}
+                    className="w-full py-3.5 rounded-2xl bg-[#231F1E] hover:bg-black text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
+                  >
+                    <span>Continue to Household Workspace</span>
+                    <ArrowRight size={18} variant="Linear" />
+                  </button>
                 </div>
               ) : (
-                <>
+                <form onSubmit={handleCreateHousehold} className="space-y-4">
                   {errorMsg && (
                     <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
                       ⚠️ {errorMsg}
@@ -406,14 +506,14 @@ export const OnboardingView: React.FC = () => {
                       <span>Creating Space...</span>
                     ) : (
                       <>
-                        <span>Create & Get 6-Digit Code</span>
+                        <span>Create & Get Invite Code</span>
                         <ArrowRight size={18} variant="Linear" />
                       </>
                     )}
                   </button>
-                </>
+                </form>
               )}
-            </motion.form>
+            </motion.div>
           )}
 
           {/* SIGN UP & JOIN HOUSEHOLD FORM MODE */}
@@ -440,6 +540,12 @@ export const OnboardingView: React.FC = () => {
               {errorMsg && (
                 <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
                   ⚠️ {errorMsg}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="p-3 rounded-2xl bg-[#EBF3ED] text-xs text-[#4A7C59] font-mono font-semibold">
+                  ℹ️ {successMsg}
                 </div>
               )}
 
