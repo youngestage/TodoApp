@@ -136,11 +136,11 @@ const defaultUserAsa: User = {
 };
 
 const defaultHousehold: Household = {
-  id: 'hh_default',
-  name: 'Our Household',
-  inviteCode: 'JOIN-NOW',
+  id: 'hh_initial',
+  name: 'My Household',
+  inviteCode: 'CREATE-KEY',
   maxMembers: 2,
-  members: [defaultUserLeslie, defaultUserAsa],
+  members: [defaultUserLeslie],
   settleBalance: {
     debtor: 'Partner B',
     creditor: 'Partner A',

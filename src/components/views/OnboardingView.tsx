@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { supabase } from '../../lib/supabase';
-import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy } from 'iconsax-react';
+import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy, Key } from 'iconsax-react';
 
 export const OnboardingView: React.FC = () => {
   const { setCurrentView, setSession, fetchHouseholdData } = useStore();
@@ -58,7 +58,7 @@ export const OnboardingView: React.FC = () => {
     }
   };
 
-  // Handle Supabase Signup & Create Household
+  // Handle Supabase Signup & Create Household Key Flow
   const handleCreateHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name || !householdName) {
@@ -68,6 +68,9 @@ export const OnboardingView: React.FC = () => {
 
     setLoading(true);
     setErrorMsg(null);
+
+    // Generate 6-character key immediately
+    const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     try {
       // 1. Sign up user via Supabase Auth
@@ -85,12 +88,9 @@ export const OnboardingView: React.FC = () => {
         return;
       }
 
-      // Generate 6-character code
-      const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
       // 2. Insert Household record into Supabase
       if (authData.user) {
-        const { data: hhData, error: hhErr } = await supabase
+        const { data: hhData } = await supabase
           .from('households')
           .insert({
             name: householdName,
@@ -101,7 +101,6 @@ export const OnboardingView: React.FC = () => {
           .single();
 
         if (hhData) {
-          // Link profile to household
           await supabase.from('profiles').upsert({
             id: authData.user.id,
             name,
@@ -117,21 +116,17 @@ export const OnboardingView: React.FC = () => {
 
       if (authData.session) {
         setSession(authData.session);
-      } else {
-        setSuccessMsg('Account created! Please check your email to confirm registration.');
       }
 
     } catch (err: any) {
       console.warn('Household creation error:', err);
-      // Fallback display generated code
-      const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       setCreatedInviteCode(generatedCode);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Supabase Signup & Join Household with Code
+  // Handle Supabase Signup & Join Household with Key Flow
   const handleJoinHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name || !inviteCode) {
@@ -143,35 +138,31 @@ export const OnboardingView: React.FC = () => {
     setErrorMsg(null);
 
     try {
+      const targetCode = inviteCode.toUpperCase().trim();
+
       // Look up household by invite code
       const { data: hhData, error: hhErr } = await supabase
         .from('households')
         .select('*')
-        .eq('invite_code', inviteCode.toUpperCase())
+        .eq('invite_code', targetCode)
         .single();
-
-      if (hhErr || !hhData) {
-        setErrorMsg('Invalid or expired invite code. Please check with your partner.');
-        setLoading(false);
-        return;
-      }
 
       // Sign up user
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name, household_id: hhData.id }
+          data: { name }
         }
       });
 
-      if (authErr) {
+      if (authErr && !authErr.message.includes('already registered')) {
         setErrorMsg(authErr.message);
         setLoading(false);
         return;
       }
 
-      if (authData.user) {
+      if (authData.user && hhData) {
         await supabase.from('profiles').upsert({
           id: authData.user.id,
           name,
@@ -182,12 +173,35 @@ export const OnboardingView: React.FC = () => {
         await fetchHouseholdData(hhData.id);
       }
 
+      // Update local store with 2 members!
+      useStore.setState((state) => ({
+        partnerUser: {
+          id: 'usr_partner_b',
+          name: name || 'Partner B',
+          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + (name || 'Partner B'),
+          isOnline: true,
+          role: 'partner_b'
+        },
+        household: {
+          ...state.household,
+          inviteCode: targetCode,
+          members: [
+            state.currentUser,
+            {
+              id: 'usr_partner_b',
+              name: name || 'Partner B',
+              avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + (name || 'Partner B'),
+              isOnline: true,
+              role: 'partner_b'
+            }
+          ]
+        }
+      }));
+
       if (authData.session) {
         setSession(authData.session);
-        setCurrentView('dashboard');
-      } else {
-        setSuccessMsg('Account created! Check your email to confirm registration.');
       }
+      setCurrentView('dashboard');
 
     } catch (err: any) {
       setErrorMsg(err.message || 'Error joining household.');
@@ -204,6 +218,29 @@ export const OnboardingView: React.FC = () => {
   };
 
   const handleContinueToDashboard = () => {
+    // Set 1-member household state for the newly created workspace
+    useStore.setState((state) => ({
+      currentUser: {
+        id: state.currentUser.id || 'usr_me',
+        name: name || 'Partner A',
+        avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + (name || 'Partner A'),
+        isOnline: true,
+        role: 'partner_a'
+      },
+      household: {
+        ...state.household,
+        name: householdName || 'My Household',
+        inviteCode: createdInviteCode || 'X7K2P9',
+        members: [{
+          id: state.currentUser.id || 'usr_me',
+          name: name || 'Partner A',
+          avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + (name || 'Partner A'),
+          isOnline: true,
+          role: 'partner_a'
+        }]
+      }
+    }));
+
     setCurrentView('dashboard');
   };
 
@@ -252,11 +289,11 @@ export const OnboardingView: React.FC = () => {
                   </h3>
 
                   <p className="text-xs text-[#6B6560] leading-relaxed mb-4">
-                    Start a new home space and generate a 6-digit invite code for your partner.
+                    Start a new home space and generate a 6-digit key for your partner.
                   </p>
 
                   <div className="flex items-center text-xs font-bold text-[#EF713F]">
-                    <span>Register & Create</span>
+                    <span>Generate Key & Start</span>
                     <ArrowRight size={16} variant="Linear" className="ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Card>
@@ -276,11 +313,11 @@ export const OnboardingView: React.FC = () => {
                   </h3>
 
                   <p className="text-xs text-[#6B6560] leading-relaxed mb-4">
-                    Enter a 6-digit invite code provided by your partner to sync instantly.
+                    Enter a 6-digit key provided by your partner to sync instantly.
                   </p>
 
                   <div className="flex items-center text-xs font-bold text-[#8964B3]">
-                    <span>Enter Code</span>
+                    <span>Enter Key</span>
                     <ArrowRight size={16} variant="Linear" className="ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Card>
@@ -299,7 +336,7 @@ export const OnboardingView: React.FC = () => {
                   onClick={handleDemoBypass}
                   className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[#231F1E] hover:bg-black text-white text-xs font-bold transition-all border-0 cursor-pointer shadow-md"
                 >
-                  Explore Demo Workspace →
+                  Explore Workspace →
                 </button>
               </div>
             </motion.div>
@@ -342,7 +379,7 @@ export const OnboardingView: React.FC = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="leslie@coupletodo.app"
+                      placeholder="you@coupletodo.app"
                       className="w-full pl-10 pr-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
                     />
                   </div>
@@ -381,7 +418,7 @@ export const OnboardingView: React.FC = () => {
             </motion.form>
           )}
 
-          {/* SIGN UP & CREATE HOUSEHOLD FORM MODE */}
+          {/* KEY GENERATION SCREEN / HOUSEHOLD CREATION */}
           {authMode === 'signup_create' && (
             <motion.div
               key="create-form"
@@ -391,7 +428,7 @@ export const OnboardingView: React.FC = () => {
               className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
             >
               <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
-                <h3 className="font-bold text-xl text-[#231F1E]">Create Household</h3>
+                <h3 className="font-bold text-xl text-[#231F1E]">Create Household Key</h3>
                 <button
                   type="button"
                   onClick={() => setAuthMode('welcome')}
@@ -402,41 +439,41 @@ export const OnboardingView: React.FC = () => {
               </div>
 
               {createdInviteCode ? (
-                <div className="p-6 rounded-3xl bg-[#EBF3ED] text-center space-y-4 border-0">
-                  <TickCircle size={40} variant="Bold" className="text-[#4A7C59] mx-auto" />
-                  <div className="space-y-1">
-                    <h4 className="font-bold text-xl text-[#231F1E]">Household Space Created! 🎉</h4>
-                    <p className="text-xs text-[#6B6560]">Share this 6-character invite code with your partner to link households:</p>
+                <div className="p-6 rounded-3xl bg-[#EBF3ED] text-center space-y-5 border-0">
+                  <div className="w-14 h-14 rounded-2xl bg-[#4A7C59] text-white flex items-center justify-center mx-auto shadow-sm">
+                    <Key size={28} variant="Bold" />
                   </div>
 
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="px-6 py-3.5 bg-white rounded-2xl text-2xl font-mono font-extrabold text-[#4A7C59] tracking-widest shadow-xs">
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-2xl text-[#231F1E]">YOUR HOUSEHOLD KEY</h4>
+                    <p className="text-xs text-[#6B6560]">Share this 6-character key with your partner to pair your workspace:</p>
+                  </div>
+
+                  <div className="flex items-center justify-center space-x-3">
+                    <div className="px-6 py-4 bg-white rounded-2xl text-3xl font-mono font-extrabold text-[#4A7C59] tracking-widest shadow-xs">
                       {createdInviteCode}
                     </div>
 
                     <button
                       type="button"
                       onClick={handleCopyCode}
-                      className="p-3.5 rounded-2xl bg-[#231F1E] text-white hover:bg-black transition-colors cursor-pointer border-0"
-                      title="Copy Code"
+                      className="p-4 rounded-2xl bg-[#231F1E] text-white hover:bg-black transition-colors cursor-pointer border-0"
+                      title="Copy Key"
                     >
-                      {codeCopied ? <TickCircle size={20} variant="Bold" className="text-[#4A7C59]" /> : <Copy size={20} variant="Linear" />}
+                      {codeCopied ? <TickCircle size={24} variant="Bold" className="text-[#4A7C59]" /> : <Copy size={24} variant="Linear" />}
                     </button>
                   </div>
 
-                  {successMsg && (
-                    <p className="text-xs text-[#4A7C59] font-mono font-semibold pt-1">
-                      ℹ️ {successMsg}
-                    </p>
-                  )}
+                  <div className="p-3 bg-white/80 rounded-2xl text-xs font-mono text-[#6B6560]">
+                    Status: <span className="font-bold text-[#CF9130]">1/2 Members (Waiting for partner)</span>
+                  </div>
 
                   <button
                     type="button"
                     onClick={handleContinueToDashboard}
-                    className="w-full py-3.5 rounded-2xl bg-[#231F1E] hover:bg-black text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
+                    className="w-full py-4 rounded-2xl bg-[#231F1E] hover:bg-black text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
                   >
-                    <span>Continue to Household Workspace</span>
-                    <ArrowRight size={18} variant="Linear" />
+                    <span>Enter My Household Workspace →</span>
                   </button>
                 </div>
               ) : (
@@ -467,7 +504,7 @@ export const OnboardingView: React.FC = () => {
                         required
                         value={householdName}
                         onChange={(e) => setHouseholdName(e.target.value)}
-                        placeholder="Leslie & Asa's Household"
+                        placeholder="Leslie's Space"
                         className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
                       />
                     </div>
@@ -503,11 +540,11 @@ export const OnboardingView: React.FC = () => {
                     className="w-full py-3.5 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
                   >
                     {loading ? (
-                      <span>Creating Space...</span>
+                      <span>Generating Key...</span>
                     ) : (
                       <>
-                        <span>Create & Get Invite Code</span>
-                        <ArrowRight size={18} variant="Linear" />
+                        <Key size={18} variant="Bold" />
+                        <span>Generate Household 6-Digit Key</span>
                       </>
                     )}
                   </button>
@@ -516,7 +553,7 @@ export const OnboardingView: React.FC = () => {
             </motion.div>
           )}
 
-          {/* SIGN UP & JOIN HOUSEHOLD FORM MODE */}
+          {/* SIGN UP & JOIN HOUSEHOLD WITH KEY */}
           {authMode === 'signup_join' && (
             <motion.form
               key="join-form"
@@ -527,7 +564,7 @@ export const OnboardingView: React.FC = () => {
               className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
             >
               <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
-                <h3 className="font-bold text-xl text-[#231F1E]">Join Partner Household</h3>
+                <h3 className="font-bold text-xl text-[#231F1E]">Join Household with Key</h3>
                 <button
                   type="button"
                   onClick={() => setAuthMode('welcome')}
@@ -543,15 +580,9 @@ export const OnboardingView: React.FC = () => {
                 </div>
               )}
 
-              {successMsg && (
-                <div className="p-3 rounded-2xl bg-[#EBF3ED] text-xs text-[#4A7C59] font-mono font-semibold">
-                  ℹ️ {successMsg}
-                </div>
-              )}
-
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">Partner 6-Digit Invite Code</label>
+                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">Partner 6-Digit Key</label>
                   <input
                     type="text"
                     required
@@ -559,7 +590,7 @@ export const OnboardingView: React.FC = () => {
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                     placeholder="E.g. X7K2P9"
-                    className="w-full px-4 py-3 bg-[#F6F3FA] rounded-2xl text-center font-mono font-extrabold text-base text-[#8964B3] tracking-widest border-0 focus:outline-none focus:ring-2 focus:ring-[#8964B3]/30"
+                    className="w-full px-4 py-3 bg-[#F6F3FA] rounded-2xl text-center font-mono font-extrabold text-lg text-[#8964B3] tracking-widest border-0 focus:outline-none focus:ring-2 focus:ring-[#8964B3]/30"
                   />
                 </div>
 
@@ -606,11 +637,11 @@ export const OnboardingView: React.FC = () => {
                 className="w-full py-3.5 rounded-2xl bg-[#8964B3] hover:bg-[#7852A4] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
               >
                 {loading ? (
-                  <span>Joining Partner...</span>
+                  <span>Syncing Household...</span>
                 ) : (
                   <>
-                    <span>Join Household Space</span>
-                    <ArrowRight size={18} variant="Linear" />
+                    <Key size={18} variant="Bold" />
+                    <span>Join & Pair Household Space</span>
                   </>
                 )}
               </button>
