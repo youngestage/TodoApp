@@ -27,8 +27,10 @@ export const Sidebar: React.FC = () => {
             </div>
           </div>
           <div>
-            <h3 className="font-zodiak font-bold text-sm text-[#231F1E]">{household.name}</h3>
-            <p className="text-[11px] text-[#6B6560]">2/2 Members Active</p>
+            <h3 className="font-bold text-sm text-[#231F1E] truncate max-w-[140px]">{household.name}</h3>
+            <p className="text-[11px] text-[#6B6560]">
+              {(household.members?.length || 1) >= 2 ? '2/2 Members Active' : '1/2 Members (Invite Partner)'}
+            </p>
           </div>
         </div>
 

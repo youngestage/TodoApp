@@ -25,7 +25,7 @@ export const BalanceCardsCarousel: React.FC = () => {
 
   const totalIncome = transactions
     .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + t.amount, 0) || 450000;
+    .reduce((sum, t) => sum + t.amount, 0);
 
   const totalSpent = transactions
     .filter(t => t.type === 'EXPENSE')

@@ -211,7 +211,38 @@ export const useStore = create<StoreState>((set, get) => ({
 
   fetchHouseholdData: async (householdId: string) => {
     try {
-      // Fetch tasks
+      // 1. Fetch household info and profiles
+      const { data: hhData } = await supabase.from('households').select('*').eq('id', householdId).single();
+      const { data: profsData } = await supabase.from('profiles').select('*').eq('household_id', householdId);
+
+      if (hhData) {
+        const syncedMembers = (profsData || []).map(p => ({
+          id: p.id,
+          name: p.name,
+          avatarUrl: p.avatar_url || 'https://api.dicebear.com/7.x/micah/svg?seed=' + p.name,
+          isOnline: true,
+          role: p.role as any || 'partner_a'
+        }));
+
+        set((state) => ({
+          household: {
+            ...state.household,
+            id: hhData.id,
+            name: hhData.name,
+            inviteCode: hhData.invite_code,
+            maxMembers: hhData.max_members || 2,
+            members: syncedMembers.length > 0 ? syncedMembers : [state.currentUser],
+            settleBalance: {
+              debtor: syncedMembers[1]?.name || 'Partner B',
+              creditor: syncedMembers[0]?.name || state.currentUser.name,
+              amount: 0,
+              currency: hhData.currency || '₦'
+            }
+          }
+        }));
+      }
+
+      // 2. Fetch tasks
       const { data: tasksData } = await supabase.from('tasks').select('*').eq('household_id', householdId);
       if (tasksData) {
         set({
