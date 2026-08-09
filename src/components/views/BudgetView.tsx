@@ -155,65 +155,73 @@ export const BudgetView: React.FC = () => {
             exit={{ opacity: 0, y: -6 }}
             className="space-y-3"
           >
-            {filteredTransactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="bg-white rounded-3xl p-5 border-0 shadow-none flex items-center justify-between gap-4 hover:bg-white/90 transition-all"
-              >
-                {/* Left: Avatar & Details */}
-                <div className="flex items-center space-x-3.5 min-w-0 flex-1 pr-2">
-                  <Avatar name={tx.paidBy} size="md" />
+            {filteredTransactions.length === 0 ? (
+              <div className="p-8 rounded-3xl bg-white text-center space-y-3 border-0">
+                <img src="/emptystate.svg" alt="No transactions" className="w-24 h-24 mx-auto object-contain" />
+                <p className="font-bold text-base text-[#231F1E]">No transactions logged yet 💸</p>
+                <p className="text-xs text-[#6B6560]">Log an expense or income transaction to track household split.</p>
+              </div>
+            ) : (
+              filteredTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="bg-white rounded-3xl p-5 border-0 shadow-none flex items-center justify-between gap-4 hover:bg-white/90 transition-all"
+                >
+                  {/* Left: Avatar & Details */}
+                  <div className="flex items-center space-x-3.5 min-w-0 flex-1 pr-2">
+                    <Avatar name={tx.paidBy} size="md" />
 
-                  <div className="space-y-0.5 min-w-0 flex-1">
-                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                      <h3 className="font-semibold text-base text-[#231F1E] truncate">
-                        {tx.title}
-                      </h3>
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                        <h3 className="font-semibold text-base text-[#231F1E] truncate">
+                          {tx.title}
+                        </h3>
 
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#FAF6EB] text-[#CF9130] text-[10px] font-mono font-semibold">
-                        {tx.category}
-                      </span>
-
-                      {tx.isShared && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#F6F3FA] text-[#8964B3] text-[10px] font-mono font-semibold">
-                          50/50 Shared
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#FAF6EB] text-[#CF9130] text-[10px] font-mono font-semibold">
+                          {tx.category}
                         </span>
-                      )}
+
+                        {tx.isShared && (
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#F6F3FA] text-[#8964B3] text-[10px] font-mono font-semibold">
+                            50/50 Shared
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-[#6B6560] font-mono truncate">
+                        Paid by {tx.paidBy} via {tx.account} • {tx.date}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Amount & Discussion */}
+                  <div className="flex items-center space-x-3 shrink-0">
+                    <div className="text-right font-mono">
+                      <span className={`text-base font-extrabold flex items-center justify-end space-x-0.5 ${
+                        tx.type === 'INCOME' ? 'text-[#4A7C59]' : 'text-[#231F1E]'
+                      }`}>
+                        {tx.type === 'INCOME' ? <ArrowDown size={14} className="text-[#4A7C59]" /> : <ArrowUp size={14} className="text-[#EF713F]" />}
+                        <span>{tx.type === 'INCOME' ? '+' : '-'}₦{tx.amount.toLocaleString()}</span>
+                      </span>
+                      <span className="text-[10px] text-[#6B6560] block">{tx.type}</span>
                     </div>
 
-                    <p className="text-xs text-[#6B6560] font-mono truncate">
-                      Paid by {tx.paidBy} via {tx.account} • {tx.date}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right: Amount & Discussion */}
-                <div className="flex items-center space-x-3 shrink-0">
-                  <div className="text-right font-mono">
-                    <span className={`text-base font-extrabold flex items-center justify-end space-x-0.5 ${
-                      tx.type === 'INCOME' ? 'text-[#4A7C59]' : 'text-[#231F1E]'
-                    }`}>
-                      {tx.type === 'INCOME' ? <ArrowDown size={14} className="text-[#4A7C59]" /> : <ArrowUp size={14} className="text-[#EF713F]" />}
-                      <span>{tx.type === 'INCOME' ? '+' : '-'}₦{tx.amount.toLocaleString()}</span>
-                    </span>
-                    <span className="text-[10px] text-[#6B6560] block">{tx.type}</span>
+                    <button
+                      onClick={() => openContextualThread({ type: 'TRANSACTION', id: tx.id, title: tx.title })}
+                      className="p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-semibold transition-colors relative border-0 cursor-pointer"
+                    >
+                      <MessageText size={16} variant="Linear" className="text-[#EF713F]" />
+                      {tx.commentsCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#EF713F] text-white text-[9px] font-bold flex items-center justify-center">
+                          {tx.commentsCount}
+                        </span>
+                      )}
+                    </button>
                   </div>
 
-                  <button
-                    onClick={() => openContextualThread({ type: 'TRANSACTION', id: tx.id, title: tx.title })}
-                    className="p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-semibold transition-colors relative border-0 cursor-pointer"
-                  >
-                    <MessageText size={16} variant="Linear" className="text-[#EF713F]" />
-                    {tx.commentsCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#EF713F] text-white text-[9px] font-bold flex items-center justify-center">
-                        {tx.commentsCount}
-                      </span>
-                    )}
-                  </button>
                 </div>
-
-              </div>
-            ))}
+              ))
+            )}
           </motion.div>
         )}
       </AnimatePresence>

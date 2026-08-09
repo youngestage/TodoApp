@@ -149,9 +149,9 @@ export const NotificationsDrawer: React.FC = () => {
                     );
                   })
                 ) : (
-                  <div className="text-center py-12 space-y-2 bg-white/60 rounded-3xl p-6 border-0">
-                    <Notification size={36} variant="Linear" className="text-[#6B6560] mx-auto opacity-50" />
-                    <p className="text-xs font-semibold text-[#231F1E]">All caught up! 🎉</p>
+                  <div className="text-center py-10 space-y-2 bg-white/60 rounded-3xl p-6 border-0">
+                    <img src="/emptystate.svg" alt="No notifications" className="w-20 h-20 mx-auto object-contain" />
+                    <p className="text-xs font-bold text-[#231F1E]">All caught up! 🎉</p>
                     <p className="text-[11px] text-[#6B6560]">No new notifications in this category</p>
                   </div>
                 )}

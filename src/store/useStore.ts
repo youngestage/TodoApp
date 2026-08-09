@@ -15,8 +15,15 @@ import {
   BudgetCategoryType
 } from '../types';
 import { sendPushNotification } from '../utils/notifications';
+import { supabase } from '../lib/supabase';
 
 interface StoreState {
+  // Auth & Session
+  session: any | null;
+  setSession: (session: any) => void;
+  logout: () => Promise<void>;
+  fetchHouseholdData: (householdId: string) => Promise<void>;
+
   currentView: ViewMode;
   setCurrentView: (view: ViewMode) => void;
   currentUser: User;
@@ -56,11 +63,11 @@ interface StoreState {
   openContextualThread: (item: { type: 'TASK' | 'TRANSACTION' | 'RECURRING_BILL'; id: string; title: string }) => void;
   closeContextualThread: () => void;
 
-  // Global App Preferences (Step 01 & 02 Blueprint)
+  // Global App Preferences
   preferences: AppPreferences;
   updatePreferences: (prefs: Partial<AppPreferences>) => void;
 
-  // Categories & Subcategories (Step 03 Blueprint)
+  // Categories & Subcategories
   subcategories: Record<BudgetCategoryType, string[]>;
   addSubcategory: (category: BudgetCategoryType, name: string) => boolean;
   deleteSubcategory: (category: BudgetCategoryType, name: string) => void;
@@ -70,14 +77,14 @@ interface StoreState {
   addPaymentAccount: (account: string) => boolean;
   deletePaymentAccount: (account: string) => void;
 
-  // Debt Strategy Configuration (Step 04 Blueprint)
+  // Debt Strategy Configuration
   debtAccounts: DebtAccount[];
   debtStrategy: 'Snowball' | 'Avalanche' | 'Minimum';
   extraDebtContribution: number;
   updateDebtConfig: (strategy: 'Snowball' | 'Avalanche' | 'Minimum', extra: number) => void;
   addDebtAccount: (debt: Omit<DebtAccount, 'id'>) => void;
 
-  // Savings & Sinking Funds (Step 05 Blueprint)
+  // Savings & Sinking Funds
   savingsGoals: SavingsGoal[];
   addSavingsGoal: (goal: Omit<SavingsGoal, 'id'>) => void;
 
@@ -85,7 +92,7 @@ interface StoreState {
   tasks: Task[];
   taskFilter: 'All' | 'Mine' | 'Partner' | 'Joint';
   setTaskFilter: (filter: 'All' | 'Mine' | 'Partner' | 'Joint') => void;
-  toggleJointTaskTap: (taskId: string, user: 'Leslie' | 'Asa') => void;
+  toggleJointTaskTap: (taskId: string, user: 'Leslie' | 'Asa' | string) => void;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'userACompleted' | 'userBCompleted'>) => void;
 
   // Transactions & Budget
@@ -111,43 +118,43 @@ interface StoreState {
   addQuickNote: (text: string) => void;
 }
 
-const initialUserLeslie: User = {
-  id: 'usr_leslie',
-  name: 'Leslie',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+const defaultUserLeslie: User = {
+  id: 'usr_me',
+  name: 'Partner A',
+  avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=Leslie&backgroundColor=EF713F',
   isOnline: true,
   role: 'partner_a'
 };
 
-const initialUserAsa: User = {
-  id: 'usr_asa',
-  name: 'Asa',
-  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+const defaultUserAsa: User = {
+  id: 'usr_partner',
+  name: 'Partner B',
+  avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=AsaPartner&backgroundColor=BEABD8',
   isOnline: true,
   role: 'partner_b'
 };
 
-const initialHousehold: Household = {
-  id: 'hh_leslie_asa',
-  name: 'Leslie & Asa',
-  inviteCode: 'LESLIE-ASA-2026',
+const defaultHousehold: Household = {
+  id: 'hh_default',
+  name: 'Our Household',
+  inviteCode: 'JOIN-NOW',
   maxMembers: 2,
-  members: [initialUserLeslie, initialUserAsa],
+  members: [defaultUserLeslie, defaultUserAsa],
   settleBalance: {
-    debtor: 'Asa',
-    creditor: 'Leslie',
-    amount: 12000,
+    debtor: 'Partner B',
+    creditor: 'Partner A',
+    amount: 0,
     currency: '₦'
   }
 };
 
-const initialPreferences: AppPreferences = {
+const defaultPreferences: AppPreferences = {
   currency: '₦',
   budgetYear: 2026,
   firstDayOfWeek: 'Monday'
 };
 
-const initialSubcategories: Record<BudgetCategoryType, string[]> = {
+const defaultSubcategories: Record<BudgetCategoryType, string[]> = {
   Income: ['Salary', 'Freelance Payout', 'Dividends', 'Gift Income'],
   Expenses: ['Groceries', 'Dining Out', 'Fuel & Transport', 'Shopping', 'Home Care'],
   Bills: ['Fibre Internet', 'Electricity', 'Estate Charge', 'Streaming Subscriptions'],
@@ -156,292 +163,156 @@ const initialSubcategories: Record<BudgetCategoryType, string[]> = {
   Debt: ['Student Loan', 'Credit Card Balance', 'Car Financing']
 };
 
-const initialPaymentAccounts = [
-  'Opay (Leslie)',
-  'Kuda (Asa)',
-  'GTBank (Leslie)',
+const defaultPaymentAccounts = [
+  'Opay (Partner A)',
+  'Kuda (Partner B)',
+  'GTBank',
   'PiggyVest',
   'Joint Account'
 ];
 
-const initialDebtAccounts: DebtAccount[] = [
-  {
-    id: 'debt-1',
-    name: 'Household Credit Card',
-    balance: 180000,
-    interestRate: 15.5,
-    minimumPayment: 25000,
-    dueDate: '25th of month',
-    startDate: '2025-11-01'
-  },
-  {
-    id: 'debt-2',
-    name: 'Car Financing Loan',
-    balance: 450000,
-    interestRate: 8.2,
-    minimumPayment: 45000,
-    dueDate: '10th of month',
-    startDate: '2025-06-15'
-  }
-];
-
-const initialSavingsGoals: SavingsGoal[] = [
-  {
-    id: 'sg-1',
-    name: 'Cape Town Trip Fund',
-    goalAmount: 800000,
-    startingBalance: 320000,
-    monthlyContribution: 80000
-  },
-  {
-    id: 'sg-2',
-    name: 'Rainy Day Emergency Pot',
-    goalAmount: 1200000,
-    startingBalance: 650000,
-    monthlyContribution: 100000
-  }
-];
-
-const initialTasks: Task[] = [
-  {
-    id: 'task-1',
-    title: 'Book romantic dinner at Chef Alain',
-    description: 'Special 3-course tasting menu for anniversary month',
-    category: 'Date Night',
-    isJoint: true,
-    userACompleted: true,
-    userBCompleted: false,
-    completed: false,
-    assignedToName: 'Both',
-    dueDate: 'Tonight, 8:00 PM',
-    priority: 'High',
-    linkedExpense: { amount: 35000, category: 'Dining' },
-    commentsCount: 2
-  },
-  {
-    id: 'task-2',
-    title: 'Pay monthly Fibre Internet bill',
-    description: 'Auto-logs to household Budget upon completion',
-    category: 'Bills',
-    isJoint: false,
-    userACompleted: true,
-    userBCompleted: true,
-    completed: true,
-    assignedToName: 'Leslie',
-    dueDate: 'Yesterday',
-    priority: 'High',
-    linkedExpense: { amount: 28500, category: 'Bills' },
-    commentsCount: 1
-  },
-  {
-    id: 'task-3',
-    title: 'Pick up organic produce from Farmers Market',
-    description: 'Avocados, sourdough bread, fresh rosemary',
-    category: 'Shopping',
-    isJoint: true,
-    userACompleted: false,
-    userBCompleted: false,
-    completed: false,
-    assignedToName: 'Both',
-    dueDate: 'Tomorrow',
-    priority: 'Medium',
-    commentsCount: 0
-  },
-  {
-    id: 'task-4',
-    title: 'Confirm Airbnb reservation in Cape Town',
-    description: 'Check-in details and airport shuttle pick-up',
-    category: 'Travel',
-    isJoint: false,
-    userACompleted: false,
-    userBCompleted: false,
-    completed: false,
-    assignedToName: 'Asa',
-    dueDate: 'Saturday',
-    priority: 'High',
-    linkedExpense: { amount: 180000, category: 'Travel' },
-    commentsCount: 4
-  },
-  {
-    id: 'task-5',
-    title: 'Restock espresso roast coffee beans',
-    category: 'Home',
-    isJoint: false,
-    userACompleted: true,
-    userBCompleted: true,
-    completed: true,
-    assignedToName: 'Leslie',
-    dueDate: '3 days ago',
-    priority: 'Low',
-    commentsCount: 0
-  }
-];
-
-const initialTransactions: Transaction[] = [
-  {
-    id: 'tx-1',
-    title: 'Monthly Groceries at Spar',
-    amount: 64500,
-    type: 'EXPENSE',
-    category: 'Expenses',
-    paidBy: 'Leslie',
-    account: 'Opay (Leslie)',
-    isShared: true,
-    date: 'Today, 10:30 AM',
-    commentsCount: 1
-  },
-  {
-    id: 'tx-2',
-    title: 'Fibre Internet Subscription',
-    amount: 28500,
-    type: 'EXPENSE',
-    category: 'Bills',
-    paidBy: 'Leslie',
-    account: 'Opay (Leslie)',
-    isShared: true,
-    date: 'Yesterday',
-    commentsCount: 0
-  },
-  {
-    id: 'tx-3',
-    title: 'Freelance Brand Project Payout',
-    amount: 450000,
-    type: 'INCOME',
-    category: 'Income',
-    paidBy: 'Asa',
-    account: 'Kuda (Asa)',
-    isShared: true,
-    date: 'Aug 5, 2026',
-    commentsCount: 2
-  },
-  {
-    id: 'tx-4',
-    title: 'Emergency Rainy Day Deposit',
-    amount: 100000,
-    type: 'EXPENSE',
-    category: 'Savings',
-    paidBy: 'Asa',
-    account: 'PiggyVest',
-    isShared: true,
-    date: 'Aug 3, 2026',
-    commentsCount: 0
-  }
-];
-
-const initialRecurringBills: RecurringBill[] = [
-  {
-    id: 'bill-1',
-    title: 'Estate Service Charge & Security',
-    amount: 45000,
-    dueDate: 'Due in 3 days',
-    dueDayNumber: 15,
-    category: 'Bills',
-    status: 'DUE',
-    paidBy: 'Shared',
-    autoPrefill: true
-  },
-  {
-    id: 'bill-2',
-    title: 'Canva & Adobe Creative Suite',
-    amount: 14500,
-    dueDate: 'Due in 7 days',
-    dueDayNumber: 20,
-    category: 'Bills',
-    status: 'UPCOMING',
-    paidBy: 'Asa',
-    autoPrefill: true
-  },
-  {
-    id: 'bill-3',
-    title: 'Starlink Broadband Unlimited',
-    amount: 38000,
-    dueDate: 'Paid Aug 1',
-    dueDayNumber: 1,
-    category: 'Bills',
-    status: 'PAID',
-    paidBy: 'Leslie',
-    autoPrefill: true
-  }
-];
-
-const initialChatMessages: ChatMessage[] = [
-  {
-    id: 'msg-1',
-    senderName: 'Asa',
-    content: 'Hey babe! Did you pay for the internet bill already?',
-    timestamp: '10:14 AM'
-  },
-  {
-    id: 'msg-2',
-    senderName: 'Leslie',
-    content: 'Yes! Just logged it under Bills (₦28,500). Auto-completed the task too ✨',
-    timestamp: '10:16 AM',
-    attachment: {
-      type: 'EXPENSE',
-      title: 'Fibre Internet Subscription',
-      amount: 28500,
-      id: 'tx-2'
+export const useStore = create<StoreState>((set, get) => ({
+  session: null,
+  setSession: (session) => {
+    set({ session });
+    if (session?.user) {
+      const metadata = session.user.user_metadata || {};
+      const name = metadata.name || session.user.email?.split('@')[0] || 'Partner A';
+      
+      set((state) => ({
+        currentUser: {
+          id: session.user.id,
+          name,
+          avatarUrl: metadata.avatar_url || 'https://api.dicebear.com/7.x/micah/svg?seed=' + name + '&backgroundColor=EF713F',
+          isOnline: true,
+          role: 'partner_a'
+        }
+      }));
     }
   },
-  {
-    id: 'msg-3',
-    senderName: 'Asa',
-    content: 'Awesome! I will check off my side of the dinner reservation right away 🍷',
-    timestamp: '10:20 AM'
-  }
-];
 
-const initialComments: ContextualComment[] = [
-  {
-    id: 'c-1',
-    targetId: 'task-1',
-    targetType: 'TASK',
-    authorName: 'Leslie',
-    text: 'I requested a cozy outdoor patio table for us!',
-    timestamp: '2 hours ago'
+  logout: async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {}
+    set({
+      session: null,
+      currentView: 'onboarding',
+      tasks: [],
+      transactions: [],
+      recurringBills: [],
+      chatMessages: [],
+      quickNotes: [],
+      contextualComments: [],
+      debtAccounts: [],
+      savingsGoals: []
+    });
   },
-  {
-    id: 'c-2',
-    targetId: 'task-1',
-    targetType: 'TASK',
-    authorName: 'Asa',
-    text: 'Perfect! I will bring the vintage wine we saved.',
-    timestamp: '1 hour ago'
-  },
-  {
-    id: 'c-3',
-    targetId: 'tx-1',
-    targetType: 'TRANSACTION',
-    authorName: 'Leslie',
-    text: 'Included extra fruits and almond milk for the week.',
-    timestamp: '3 hours ago'
-  }
-];
 
-const initialQuickNotes: QuickNote[] = [
-  {
-    id: 'qn-1',
-    text: 'Check if we need extra house keys made for the housekeeper',
-    authorName: 'Leslie',
-    timestamp: 'Today, 9:00 AM'
-  },
-  {
-    id: 'qn-2',
-    text: 'Remember to order replacement water filter cartridges',
-    authorName: 'Asa',
-    timestamp: 'Yesterday'
-  }
-];
+  fetchHouseholdData: async (householdId: string) => {
+    try {
+      // Fetch tasks
+      const { data: tasksData } = await supabase.from('tasks').select('*').eq('household_id', householdId);
+      if (tasksData) {
+        set({
+          tasks: tasksData.map(t => ({
+            id: t.id,
+            title: t.title,
+            description: t.description,
+            category: t.category,
+            isJoint: t.is_joint,
+            userACompleted: t.user_a_completed,
+            userBCompleted: t.user_b_completed,
+            completed: t.completed,
+            assignedToName: t.assigned_to_name || 'Both',
+            dueDate: t.due_date || 'Today',
+            priority: t.priority || 'Medium',
+            commentsCount: t.comments_count || 0
+          }))
+        });
+      }
 
-export const useStore = create<StoreState>((set, get) => ({
-  currentView: 'dashboard',
+      // Fetch transactions
+      const { data: txData } = await supabase.from('transactions').select('*').eq('household_id', householdId);
+      if (txData) {
+        set({
+          transactions: txData.map(tx => ({
+            id: tx.id,
+            title: tx.title,
+            amount: Number(tx.amount),
+            type: tx.type,
+            category: tx.category,
+            paidBy: tx.paid_by_name,
+            account: tx.account,
+            isShared: tx.is_shared,
+            date: tx.date || 'Just now',
+            commentsCount: tx.comments_count || 0
+          }))
+        });
+      }
+
+      // Fetch recurring bills
+      const { data: billsData } = await supabase.from('recurring_bills').select('*').eq('household_id', householdId);
+      if (billsData) {
+        set({
+          recurringBills: billsData.map(b => ({
+            id: b.id,
+            title: b.title,
+            amount: Number(b.amount),
+            dueDate: b.due_date || 'Due soon',
+            dueDayNumber: b.due_day_number || 1,
+            category: b.category,
+            status: b.status,
+            paidBy: b.paid_by_name || 'Shared',
+            autoPrefill: b.auto_prefill
+          }))
+        });
+      }
+
+      // Fetch chat messages
+      const { data: chatData } = await supabase.from('chat_messages').select('*').eq('household_id', householdId).order('created_at', { ascending: true });
+      if (chatData) {
+        set({
+          chatMessages: chatData.map(m => ({
+            id: m.id,
+            senderName: m.sender_name,
+            content: m.content,
+            timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            attachment: m.attachment_type ? {
+              type: m.attachment_type,
+              title: m.attachment_title || '',
+              amount: m.attachment_amount ? Number(m.attachment_amount) : undefined,
+              id: m.attachment_ref_id || m.id
+            } : undefined
+          }))
+        });
+      }
+
+      // Fetch quick notes
+      const { data: notesData } = await supabase.from('quick_notes').select('*').eq('household_id', householdId);
+      if (notesData) {
+        set({
+          quickNotes: notesData.map(n => ({
+            id: n.id,
+            text: n.text,
+            authorName: n.author_name,
+            timestamp: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }))
+        });
+      }
+    } catch (err) {
+      console.warn('Error fetching household data from Supabase:', err);
+    }
+  },
+
+  currentView: 'onboarding',
   setCurrentView: (view) => set({ currentView: view, isFullChatActive: false }),
-  currentUser: initialUserLeslie,
-  partnerUser: initialUserAsa,
+  currentUser: defaultUserLeslie,
+  partnerUser: defaultUserAsa,
   updateUserAvatar: (url) => set((state) => ({
     currentUser: { ...state.currentUser, avatarUrl: url }
   })),
-  household: initialHousehold,
+  household: defaultHousehold,
 
   hideBalances: false,
   toggleHideBalances: () => set((state) => ({ hideBalances: !state.hideBalances })),
@@ -471,263 +342,208 @@ export const useStore = create<StoreState>((set, get) => ({
   openContextualThread: (item) => set({ activeContextualThread: item }),
   closeContextualThread: () => set({ activeContextualThread: null }),
 
-  // Blueprint Settings State & Actions
-  preferences: initialPreferences,
+  preferences: defaultPreferences,
   updatePreferences: (prefs) => set((state) => ({
-    preferences: { ...state.preferences, ...prefs },
-    household: prefs.currency
-      ? { ...state.household, settleBalance: { ...state.household.settleBalance, currency: prefs.currency } }
-      : state.household
+    preferences: { ...state.preferences, ...prefs }
   })),
 
-  subcategories: initialSubcategories,
-  addSubcategory: (cat, name) => {
-    const state = get();
-    const existing = state.subcategories[cat] || [];
-    if (existing.some(s => s.toLowerCase() === name.trim().toLowerCase())) {
+  subcategories: defaultSubcategories,
+  addSubcategory: (category, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+
+    const currentList = get().subcategories[category] || [];
+    if (currentList.some(item => item.toLowerCase() === trimmed.toLowerCase())) {
       return false;
     }
-    set({
+    if (currentList.length >= 20) return false;
+
+    set((state) => ({
       subcategories: {
         ...state.subcategories,
-        [cat]: [...existing, name.trim()]
+        [category]: [...currentList, trimmed]
       }
-    });
+    }));
     return true;
   },
-  deleteSubcategory: (cat, name) => set((state) => ({
+
+  deleteSubcategory: (category, name) => set((state) => ({
     subcategories: {
       ...state.subcategories,
-      [cat]: (state.subcategories[cat] || []).filter(s => s !== name)
+      [category]: (state.subcategories[category] || []).filter(item => item !== name)
     }
   })),
 
-  paymentAccounts: initialPaymentAccounts,
-  addPaymentAccount: (accountName) => {
-    const state = get();
-    if (state.paymentAccounts.length >= 10) return false;
-    if (state.paymentAccounts.some(a => a.toLowerCase() === accountName.trim().toLowerCase())) return false;
-    set({ paymentAccounts: [...state.paymentAccounts, accountName.trim()] });
+  paymentAccounts: defaultPaymentAccounts,
+  addPaymentAccount: (account) => {
+    const trimmed = account.trim();
+    if (!trimmed) return false;
+    const currentList = get().paymentAccounts;
+    if (currentList.some(item => item.toLowerCase() === trimmed.toLowerCase())) return false;
+    if (currentList.length >= 10) return false;
+
+    set((state) => ({
+      paymentAccounts: [...state.paymentAccounts, trimmed]
+    }));
     return true;
   },
-  deletePaymentAccount: (accountName) => set((state) => ({
-    paymentAccounts: state.paymentAccounts.filter(a => a !== accountName)
+
+  deletePaymentAccount: (account) => set((state) => ({
+    paymentAccounts: state.paymentAccounts.filter(item => item !== account)
   })),
 
-  debtAccounts: initialDebtAccounts,
+  debtAccounts: [],
   debtStrategy: 'Snowball',
-  extraDebtContribution: 30000,
+  extraDebtContribution: 0,
   updateDebtConfig: (strategy, extra) => set({ debtStrategy: strategy, extraDebtContribution: extra }),
-  addDebtAccount: (debtData) => set((state) => ({
-    debtAccounts: [...state.debtAccounts, { ...debtData, id: `debt-${Date.now()}` }]
+  addDebtAccount: (debt) => set((state) => ({
+    debtAccounts: [...state.debtAccounts, { ...debt, id: `debt-${Date.now()}` }]
   })),
 
-  savingsGoals: initialSavingsGoals,
-  addSavingsGoal: (goalData) => set((state) => ({
-    savingsGoals: [...state.savingsGoals, { ...goalData, id: `sg-${Date.now()}` }]
+  savingsGoals: [],
+  addSavingsGoal: (goal) => set((state) => ({
+    savingsGoals: [...state.savingsGoals, { ...goal, id: `sg-${Date.now()}` }]
   })),
 
-  // Tasks
-  tasks: initialTasks,
+  // Empty starting arrays (Dummy data cleared!)
+  tasks: [],
   taskFilter: 'All',
   setTaskFilter: (filter) => set({ taskFilter: filter }),
-
   toggleJointTaskTap: (taskId, user) => set((state) => {
-    if (user !== state.currentUser.name) {
-      console.warn(`User ${state.currentUser.name} cannot tick ${user}'s task side.`);
-      return state;
-    }
-
     const updatedTasks = state.tasks.map((task) => {
       if (task.id !== taskId) return task;
 
-      let userACompleted = task.userACompleted;
-      let userBCompleted = task.userBCompleted;
+      if (!task.isJoint) {
+        const nowCompleted = !task.completed;
+        return { ...task, completed: nowCompleted, userACompleted: nowCompleted, userBCompleted: nowCompleted };
+      }
 
-      if (user === 'Leslie') {
-        userACompleted = !userACompleted;
+      let newA = task.userACompleted;
+      let newB = task.userBCompleted;
+
+      if (user === state.currentUser.name || user === 'Leslie') {
+        newA = !newA;
       } else {
-        userBCompleted = !userBCompleted;
+        newB = !newB;
       }
 
-      const isFullyCompleted = task.isJoint
-        ? (userACompleted && userBCompleted)
-        : (userACompleted || userBCompleted);
-
-      const statusText = isFullyCompleted
-        ? 'Completed'
-        : userACompleted || userBCompleted
-        ? '1/2 Joint Progress'
-        : 'Reopened';
-
-      sendPushNotification(
-        `Task Update: ${task.title}`,
-        `${user} updated task status: ${statusText}`,
-        { tag: `task-${taskId}` }
-      );
-
-      if (isFullyCompleted && !task.completed && task.linkedExpense) {
-        const newTx: Transaction = {
-          id: `tx-autolog-${Date.now()}`,
-          title: task.title,
-          amount: task.linkedExpense.amount,
-          type: 'EXPENSE',
-          category: task.linkedExpense.category as any || 'Bills',
-          paidBy: user,
-          account: user === 'Leslie' ? 'Opay (Leslie)' : 'Kuda (Asa)',
-          isShared: true,
-          date: 'Just now (Auto-logged)'
-        };
-        setTimeout(() => {
-          set((curr) => ({ transactions: [newTx, ...curr.transactions] }));
-          sendPushNotification(
-            'Auto-Logged Expense',
-            `${state.preferences.currency}${newTx.amount.toLocaleString()} logged to ${newTx.category} upon task completion`
-          );
-        }, 100);
-      }
-
+      const bothDone = newA && newB;
       return {
         ...task,
-        userACompleted,
-        userBCompleted,
-        completed: isFullyCompleted
+        userACompleted: newA,
+        userBCompleted: newB,
+        completed: bothDone
       };
     });
 
     return { tasks: updatedTasks };
   }),
 
-  addTask: (newTaskData) => set((state) => {
+  addTask: (taskData) => set((state) => {
     const newTask: Task = {
-      ...newTaskData,
+      ...taskData,
       id: `task-${Date.now()}`,
+      completed: false,
       userACompleted: false,
       userBCompleted: false,
-      completed: false,
       commentsCount: 0
     };
-
-    sendPushNotification(
-      'New Household Task',
-      `"${newTask.title}" added under ${newTask.category} by ${state.currentUser.name}`
-    );
-
+    sendPushNotification('New Joint Task Added', `${newTask.title} was created by ${state.currentUser.name}`);
     return { tasks: [newTask, ...state.tasks] };
   }),
 
-  transactions: initialTransactions,
+  transactions: [],
   addTransaction: (txData) => set((state) => {
     const newTx: Transaction = {
       ...txData,
-      id: `tx-${Date.now()}`
+      id: `tx-${Date.now()}`,
+      commentsCount: 0
     };
 
-    let newSettleAmount = state.household.settleBalance.amount;
-    if (txData.isShared && txData.type === 'EXPENSE') {
-      const half = txData.amount / 2;
-      if (txData.paidBy === 'Leslie') {
-        newSettleAmount += half;
-      } else {
-        newSettleAmount -= half;
-      }
-    }
+    const delta = newTx.type === 'EXPENSE' ? newTx.amount / 2 : -(newTx.amount / 2);
+    const currSettle = state.household.settleBalance;
+    const newAmount = currSettle.amount + delta;
 
-    sendPushNotification(
-      'Expense Logged',
-      `${state.preferences.currency}${txData.amount.toLocaleString()} for "${txData.title}" paid by ${txData.paidBy}`
-    );
+    sendPushNotification('New Transaction Logged', `${newTx.title} (₦${newTx.amount.toLocaleString()}) by ${newTx.paidBy}`);
 
     return {
       transactions: [newTx, ...state.transactions],
       household: {
         ...state.household,
         settleBalance: {
-          ...state.household.settleBalance,
-          amount: Math.max(0, Math.round(newSettleAmount))
+          ...currSettle,
+          amount: Math.abs(newAmount),
+          debtor: newAmount >= 0 ? state.partnerUser.name : state.currentUser.name,
+          creditor: newAmount >= 0 ? state.currentUser.name : state.partnerUser.name
         }
       }
     };
   }),
 
   settleUpBalance: () => set((state) => {
-    const amount = state.household.settleBalance.amount;
-    const debtor = state.household.settleBalance.debtor;
+    const settleTx: Transaction = {
+      id: `tx-settle-${Date.now()}`,
+      title: 'Settled Household Balance',
+      amount: state.household.settleBalance.amount,
+      type: 'INCOME',
+      category: 'Income',
+      paidBy: state.household.settleBalance.debtor as any,
+      account: 'Settle Up',
+      isShared: true,
+      date: 'Just now',
+      commentsCount: 0
+    };
 
-    sendPushNotification(
-      'Household Balance Paid',
-      `${state.preferences.currency}${amount.toLocaleString()} balance was settled by ${debtor}`
-    );
+    sendPushNotification('Balance Settled! 🎉', `Household balance of ₦${state.household.settleBalance.amount.toLocaleString()} was settled.`);
 
     return {
+      transactions: [settleTx, ...state.transactions],
       household: {
         ...state.household,
         settleBalance: {
           ...state.household.settleBalance,
           amount: 0
         }
-      },
-      isSettleUpOpen: false,
-      transactions: [
-        {
-          id: `tx-settle-${Date.now()}`,
-          title: 'Settled Household Balance',
-          amount: amount,
-          type: 'EXPENSE',
-          category: 'Expenses',
-          paidBy: debtor as 'Leslie' | 'Asa',
-          account: debtor === 'Leslie' ? 'Opay (Leslie)' : 'Kuda (Asa)',
-          isShared: false,
-          date: 'Just now'
-        },
-        ...state.transactions
-      ]
+      }
     };
   }),
 
-  recurringBills: initialRecurringBills,
+  recurringBills: [],
   payRecurringBill: (id) => set((state) => {
-    const bill = state.recurringBills.find(b => b.id === id);
-    if (!bill) return state;
+    const targetBill = state.recurringBills.find(b => b.id === id);
+    if (!targetBill) return state;
 
     const updatedBills = state.recurringBills.map(b => b.id === id ? { ...b, status: 'PAID' as const } : b);
-
-    const newTx: Transaction = {
+    const autoTx: Transaction = {
       id: `tx-bill-${Date.now()}`,
-      title: `Bill: ${bill.title}`,
-      amount: bill.amount,
+      title: `${targetBill.title} (Bill Auto-Pay)`,
+      amount: targetBill.amount,
       type: 'EXPENSE',
-      category: bill.category,
-      paidBy: bill.paidBy === 'Shared' ? 'Leslie' : bill.paidBy,
-      account: bill.paidBy === 'Asa' ? 'Kuda (Asa)' : 'Opay (Leslie)',
-      isShared: bill.paidBy === 'Shared',
-      date: 'Just now'
+      category: 'Bills',
+      paidBy: state.currentUser.name as any,
+      account: 'Auto-Pay Rules',
+      isShared: true,
+      date: 'Just now',
+      commentsCount: 0
     };
 
-    sendPushNotification(
-      'Recurring Bill Paid',
-      `Bill "${bill.title}" paid (${state.preferences.currency}${bill.amount.toLocaleString()}) and auto-logged`
-    );
+    sendPushNotification('Bill Paid', `Paid ₦${targetBill.amount.toLocaleString()} for ${targetBill.title}`);
 
     return {
       recurringBills: updatedBills,
-      transactions: [newTx, ...state.transactions]
+      transactions: [autoTx, ...state.transactions]
     };
   }),
 
-  chatMessages: initialChatMessages,
+  chatMessages: [],
   sendChatMessage: (content, attachment) => set((state) => {
-    sendPushNotification(
-      `New Message from ${state.currentUser.name}`,
-      content
-    );
-
+    sendPushNotification(`New Message from ${state.currentUser.name}`, content);
     return {
       chatMessages: [
         ...state.chatMessages,
         {
           id: `msg-${Date.now()}`,
-          senderName: 'Leslie',
+          senderName: state.currentUser.name,
           content,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           attachment
@@ -760,45 +576,28 @@ export const useStore = create<StoreState>((set, get) => ({
     };
   }),
 
-  contextualComments: initialComments,
+  contextualComments: [],
   addContextualComment: (targetId, targetType, text) => set((state) => {
-    sendPushNotification(
-      'Inline Comment Added',
-      `Leslie: "${text}"`
-    );
-
-    return {
-      contextualComments: [
-        ...state.contextualComments,
-        {
-          id: `c-${Date.now()}`,
-          targetId,
-          targetType,
-          authorName: 'Leslie',
-          text,
-          timestamp: 'Just now'
-        }
-      ]
+    sendPushNotification('New Thread Comment', `${state.currentUser.name}: ${text}`);
+    const newComment: ContextualComment = {
+      id: `comment-${Date.now()}`,
+      targetId,
+      targetType,
+      authorName: state.currentUser.name,
+      text,
+      timestamp: 'Just now'
     };
+    return { contextualComments: [...state.contextualComments, newComment] };
   }),
 
-  quickNotes: initialQuickNotes,
+  quickNotes: [],
   addQuickNote: (text) => set((state) => {
-    sendPushNotification(
-      'Quick Note Saved',
-      `Note: "${text}"`
-    );
-
-    return {
-      quickNotes: [
-        {
-          id: `qn-${Date.now()}`,
-          text,
-          authorName: 'Leslie',
-          timestamp: 'Just now'
-        },
-        ...state.quickNotes
-      ]
+    const newNote: QuickNote = {
+      id: `note-${Date.now()}`,
+      text,
+      authorName: state.currentUser.name,
+      timestamp: 'Just now'
     };
+    return { quickNotes: [newNote, ...state.quickNotes] };
   })
 }));

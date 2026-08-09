@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from './store/useStore';
+import { supabase } from './lib/supabase';
 import { TopBar } from './components/layout/TopBar';
 import { Sidebar } from './components/layout/Sidebar';
 import { MobileNav } from './components/layout/MobileNav';
@@ -22,7 +23,25 @@ import { NotificationsDrawer } from './components/views/NotificationsDrawer';
 import { WelcomeWoosh } from './components/ui/WelcomeWoosh';
 
 export default function App() {
-  const { currentView, isNotificationsOpen } = useStore();
+  const { currentView, setCurrentView, setSession, isNotificationsOpen } = useStore();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSession(session);
+        if (currentView === 'onboarding') setCurrentView('dashboard');
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setSession(session);
+        if (currentView === 'onboarding') setCurrentView('dashboard');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -43,7 +62,7 @@ export default function App() {
       {/* Typewriter & Color Woosh App Entrance Experience */}
       <WelcomeWoosh />
 
-      {/* App Workspace Canvas - Softly Pushed to the Left with Matching Spring Easing */}
+      {/* App Workspace Canvas */}
       <motion.div
         animate={{
           x: isNotificationsOpen ? -320 : 0,
@@ -60,15 +79,15 @@ export default function App() {
           {/* Desktop Left Sidebar */}
           <Sidebar />
 
-          {/* Main Content Workspace */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+          {/* Main Content Area */}
+          <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentView}
-                initial={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
               >
                 {renderCurrentView()}
               </motion.div>
@@ -76,11 +95,11 @@ export default function App() {
           </main>
         </div>
 
-        {/* Mobile Bottom Navigation & Isolated Floating Action Circle */}
+        {/* Mobile Bottom Liquid Glass Navigation Bar */}
         <MobileNav />
       </motion.div>
 
-      {/* Soft Slide-over Right Notifications Drawer */}
+      {/* Slide-out Notifications Drawer */}
       <NotificationsDrawer />
 
       {/* Global Modals & Drawers */}
@@ -89,6 +108,7 @@ export default function App() {
       <ContextualThreadDrawer />
       <QuickNoteModal />
       <SettingsModal />
+
     </div>
   );
-}
+};

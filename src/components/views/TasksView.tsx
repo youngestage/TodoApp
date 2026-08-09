@@ -102,8 +102,9 @@ export const TasksView: React.FC = () => {
       {/* 3. Active Tasks List */}
       <div className="space-y-3">
         {pendingTasks.length === 0 ? (
-          <div className="p-8 rounded-3xl bg-white text-center space-y-2 border-0">
-            <p className="font-display text-lg font-bold text-[#231F1E]">All caught up! 🎉</p>
+          <div className="p-8 rounded-3xl bg-white text-center space-y-3 border-0">
+            <img src="/emptystate.svg" alt="All caught up" className="w-24 h-24 mx-auto object-contain" />
+            <p className="font-bold text-base text-[#231F1E]">All caught up! 🎉</p>
             <p className="text-xs text-[#6B6560]">No pending tasks under this filter.</p>
           </div>
         ) : (
