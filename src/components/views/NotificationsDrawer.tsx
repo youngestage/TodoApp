@@ -1,73 +1,57 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
-import { CloseCircle, TaskSquare, Wallet3, NoteText, WalletCheck } from 'iconsax-react';
+import { CloseCircle, TaskSquare, Wallet3, NoteText, WalletCheck, Notification } from 'iconsax-react';
 
 export const NotificationsDrawer: React.FC = () => {
-  const { isNotificationsOpen, setNotificationsOpen, setCurrentView, openContextualThread } = useStore();
+  const { isNotificationsOpen, setNotificationsOpen, setCurrentView, openContextualThread, tasks, transactions, quickNotes, currentUser, partnerUser } = useStore();
   const [activeFilter, setActiveFilter] = useState<'All' | 'Task' | 'Budget' | 'Note'>('All');
 
-  const [notificationList, setNotificationList] = useState([
-    {
-      id: 1,
-      title: 'Asa completed dinner reservation task',
-      time: '10m ago',
+  // Derive real notifications dynamically from active store data
+  const realNotifications = [
+    ...tasks.slice(0, 3).map(t => ({
+      id: `notif-task-${t.id}`,
+      title: `${t.assignedToName} task: ${t.title}`,
+      time: t.dueDate,
       type: 'Task' as const,
       icon: TaskSquare,
-      unread: true,
+      unread: !t.completed,
       targetView: 'tasks' as const,
-      threadItem: { type: 'TASK' as const, id: 'task-1', title: 'Book romantic dinner at Chef Alain' }
-    },
-    {
-      id: 2,
-      title: 'Fibre Internet Subscription bill auto-logged',
-      time: '1h ago',
+      threadItem: { type: 'TASK' as const, id: t.id, title: t.title }
+    })),
+    ...transactions.slice(0, 3).map(tx => ({
+      id: `notif-tx-${tx.id}`,
+      title: `${tx.paidBy} logged ${tx.type === 'EXPENSE' ? 'expense' : 'income'}: ${tx.title} (₦${tx.amount.toLocaleString()})`,
+      time: tx.date,
       type: 'Budget' as const,
       icon: Wallet3,
-      unread: true,
+      unread: false,
       targetView: 'budget' as const,
-      threadItem: { type: 'TRANSACTION' as const, id: 'tx-2', title: 'Fibre Internet Subscription' }
-    },
-    {
-      id: 3,
-      title: 'Leslie added quick note: Check water filter',
-      time: '3h ago',
+      threadItem: { type: 'TRANSACTION' as const, id: tx.id, title: tx.title }
+    })),
+    ...quickNotes.slice(0, 3).map(n => ({
+      id: `notif-note-${n.id}`,
+      title: `${n.authorName} note: ${n.text}`,
+      time: n.timestamp,
       type: 'Note' as const,
       icon: NoteText,
       unread: false
-    },
-    {
-      id: 4,
-      title: 'Asa paid ₦12,000 settlement balance',
-      time: 'Yesterday',
-      type: 'Budget' as const,
-      icon: WalletCheck,
-      unread: false,
-      targetView: 'budget' as const
-    }
-  ]);
+    }))
+  ];
 
-  const handleNotificationClick = (item: typeof notificationList[0]) => {
-    // 1. Mark as read
-    setNotificationList(prev =>
-      prev.map(n => (n.id === item.id ? { ...n, unread: false } : n))
-    );
+  const filteredNotifications = realNotifications.filter(n => {
+    if (activeFilter === 'All') return true;
+    return n.type === activeFilter;
+  });
 
-    // 2. Close drawer
+  const handleNotificationClick = (item: typeof realNotifications[0]) => {
     setNotificationsOpen(false);
-
-    // 3. Navigate or open thread if available
     if (item.threadItem) {
       openContextualThread(item.threadItem);
     } else if (item.targetView) {
       setCurrentView(item.targetView);
     }
   };
-
-  const filteredNotifications = notificationList.filter(n => {
-    if (activeFilter === 'All') return true;
-    return n.type === activeFilter;
-  });
 
   return (
     <AnimatePresence>
@@ -84,17 +68,17 @@ export const NotificationsDrawer: React.FC = () => {
             onClick={() => setNotificationsOpen(false)}
           />
 
-          {/* Streamlined Notifications Drawer (Icon, Subtitle & Footer Removed) */}
+          {/* Streamlined Notifications Drawer */}
           <motion.aside
             initial={{ x: '100%', opacity: 0.8 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0.8 }}
             transition={{ type: 'spring', stiffness: 220, damping: 28, mass: 0.8 }}
-            className="relative w-80 sm:w-96 h-full bg-[#FBF9F5] rounded-l-[32px] z-50 p-6 sm:p-7 space-y-6 flex flex-col justify-between overflow-y-auto border-0 shadow-[-16px_0_40px_rgba(35,31,30,0.08)]"
+            className="relative w-80 sm:w-96 h-full bg-[#FBF9F5] rounded-l-[32px] z-50 p-6 sm:p-7 space-y-6 flex flex-col justify-between overflow-y-auto border-0 shadow-[-16px_0_40px_rgba(35,31,30,0.08)] select-none"
           >
             <div className="space-y-6">
               
-              {/* Clean Header: "Notifications" Title ONLY (No Icon, No Subtitle) */}
+              {/* Clean Header: "Notifications" Title ONLY */}
               <div className="flex items-center justify-between border-0 pb-1">
                 <h3 className="font-display text-2xl font-bold text-[#231F1E]">Notifications</h3>
 
@@ -124,44 +108,53 @@ export const NotificationsDrawer: React.FC = () => {
                 ))}
               </div>
 
-              {/* Interactive Notifications Activity List (Click to Mark Read & Open) */}
-              <div className="space-y-2.5">
-                {filteredNotifications.map((n) => {
-                  const IconComp = n.icon;
-                  return (
-                    <button
-                      key={n.id}
-                      onClick={() => handleNotificationClick(n)}
-                      className={`w-full p-4 rounded-2xl text-xs space-y-1.5 border-0 text-left transition-all relative cursor-pointer ${
-                        n.unread
-                          ? 'bg-white shadow-[0_4px_16px_rgba(35,31,30,0.04)] font-semibold'
-                          : 'bg-white/60 text-[#6B6560]'
-                      }`}
-                    >
-                      {n.unread && (
-                        <span className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full bg-[#EF713F]" />
-                      )}
-
-                      <div className="flex items-center space-x-2.5">
-                        <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                          n.unread ? 'bg-[#FFF5F0] text-[#EF713F]' : 'bg-[#F5F3EF] text-[#6B6560]'
+              {/* Notification Cards List */}
+              <div className="space-y-3">
+                {filteredNotifications.length > 0 ? (
+                  filteredNotifications.map((n) => {
+                    const IconComp = n.icon;
+                    return (
+                      <div
+                        key={n.id}
+                        onClick={() => handleNotificationClick(n)}
+                        className={`p-4 rounded-2xl border-0 transition-all cursor-pointer flex items-start space-x-3 group ${
+                          n.unread
+                            ? 'bg-white shadow-xs hover:bg-white/90'
+                            : 'bg-white/60 hover:bg-white/90'
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-xl shrink-0 ${
+                          n.type === 'Task'
+                            ? 'bg-[#FFF5F0] text-[#EF713F]'
+                            : n.type === 'Budget'
+                            ? 'bg-[#EBF3ED] text-[#4A7C59]'
+                            : 'bg-[#F6F3FA] text-[#8964B3]'
                         }`}>
-                          <IconComp size={16} variant="Linear" />
+                          <IconComp size={20} variant="Bold" />
                         </div>
-                        <div className="flex-1 flex items-center justify-between pr-4">
-                          <span className="text-[10px] font-semibold uppercase font-mono">
-                            {n.type}
-                          </span>
-                          <span className="text-[10px] text-[#6B6560] font-mono">{n.time}</span>
-                        </div>
-                      </div>
 
-                      <p className={`leading-snug pl-9 ${n.unread ? 'text-[#231F1E]' : 'text-[#6B6560]'}`}>
-                        {n.title}
-                      </p>
-                    </button>
-                  );
-                })}
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <h4 className="font-bold text-xs text-[#231F1E] leading-snug group-hover:text-[#EF713F] transition-colors truncate">
+                            {n.title}
+                          </h4>
+                          <span className="text-[10px] font-mono text-[#6B6560] block">
+                            {n.time}
+                          </span>
+                        </div>
+
+                        {n.unread && (
+                          <span className="w-2 h-2 rounded-full bg-[#EF713F] shrink-0 mt-1" />
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-12 space-y-2 bg-white/60 rounded-3xl p-6 border-0">
+                    <Notification size={36} variant="Linear" className="text-[#6B6560] mx-auto opacity-50" />
+                    <p className="text-xs font-semibold text-[#231F1E]">All caught up! 🎉</p>
+                    <p className="text-[11px] text-[#6B6560]">No new notifications in this category</p>
+                  </div>
+                )}
               </div>
             </div>
           </motion.aside>
