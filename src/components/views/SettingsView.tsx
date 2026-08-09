@@ -171,15 +171,23 @@ export const SettingsView: React.FC = () => {
     setIsDeleting(true);
 
     try {
+      // 1. Execute RPC function to delete auth user & profile from DB
+      await supabase.rpc('delete_user_account');
+
+      // 2. Delete profile row explicitly if present
       if (currentUser?.id) {
         await supabase.from('profiles').delete().eq('id', currentUser.id);
       }
-      await logout();
+
+      // 3. Clear auth session
+      await supabase.auth.signOut();
     } catch (err) {
-      await logout();
+      console.warn('Account deletion cleanup error:', err);
     } finally {
+      localStorage.clear();
       setIsDeleting(false);
       setDeleteModalOpen(false);
+      await logout();
     }
   };
 

@@ -294,3 +294,22 @@ $$ language plpgsql;
 create or replace trigger set_tasks_updated_at before update on public.tasks for each row execute procedure public.set_updated_at();
 create or replace trigger set_profiles_updated_at before update on public.profiles for each row execute procedure public.set_updated_at();
 create or replace trigger set_preferences_updated_at before update on public.app_preferences for each row execute procedure public.set_updated_at();
+
+-- 4. Delete user account function (SECURITY DEFINER)
+create or replace function public.delete_user_account()
+returns void
+language plpgsql
+security definer
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  -- Delete profile & related records
+  delete from public.profiles where id = uid;
+  delete from auth.users where id = uid;
+end;
+$$;
