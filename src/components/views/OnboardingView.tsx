@@ -310,11 +310,6 @@ export const OnboardingView: React.FC = () => {
     setCurrentView('dashboard');
   };
 
-  const handleDemoBypass = () => {
-    setOnboardingCompleted(true);
-    setCurrentView('dashboard');
-  };
-
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-4 relative overflow-hidden select-none">
       <div className="relative z-10 w-full max-w-xl space-y-6">
@@ -390,20 +385,13 @@ export const OnboardingView: React.FC = () => {
                 </Card>
               </div>
 
-              {/* Login & Demo Options */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              {/* Login Option Only */}
+              <div className="pt-2 text-center">
                 <button
                   onClick={() => setAuthMode('login')}
-                  className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white hover:bg-white/90 text-[#231F1E] text-xs font-bold transition-all border-0 cursor-pointer shadow-xs"
+                  className="w-full py-3.5 rounded-2xl bg-white hover:bg-white/90 text-[#231F1E] text-xs font-bold transition-all border-0 cursor-pointer shadow-xs"
                 >
-                  Already have an account? <span className="text-[#EF713F]">Log In</span>
-                </button>
-
-                <button
-                  onClick={handleDemoBypass}
-                  className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[#231F1E] hover:bg-black text-white text-xs font-bold transition-all border-0 cursor-pointer shadow-md"
-                >
-                  Explore Workspace →
+                  Already have an account? <span className="text-[#EF713F]">Log In to Household</span>
                 </button>
               </div>
             </motion.div>
