@@ -237,12 +237,16 @@ export const useStore = create<StoreState>((set, get) => ({
           role: p.role as any || 'partner_a'
         }));
 
+        if (hhData.invite_code) {
+          localStorage.setItem('coupletodo_permanent_invite_code', hhData.invite_code);
+        }
+
         set((state) => ({
           household: {
             ...state.household,
             id: hhData.id,
             name: hhData.name,
-            inviteCode: hhData.invite_code,
+            inviteCode: hhData.invite_code || state.household.inviteCode,
             maxMembers: hhData.max_members || 2,
             members: syncedMembers.length > 0 ? syncedMembers : [state.currentUser],
             settleBalance: {

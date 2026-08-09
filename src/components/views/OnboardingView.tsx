@@ -98,8 +98,12 @@ export const OnboardingView: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
 
-    // Generate 6-character uppercase key (e.g. X7K2P9)
-    const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Permanent key bond lock: use existing stored code or lock a new 6-character key forever
+    let generatedCode = localStorage.getItem('coupletodo_permanent_invite_code');
+    if (!generatedCode) {
+      generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      localStorage.setItem('coupletodo_permanent_invite_code', generatedCode);
+    }
 
     try {
       // 1. Try Supabase Auth
