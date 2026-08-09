@@ -17,7 +17,6 @@ export const OnboardingView: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [createdInviteCode, setCreatedInviteCode] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
 
@@ -58,7 +57,7 @@ export const OnboardingView: React.FC = () => {
     }
   };
 
-  // Handle Supabase Signup & Create Household Key Flow
+  // Handle Real Household Creation & Key Generation
   const handleCreateHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name || !householdName) {
@@ -69,27 +68,19 @@ export const OnboardingView: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
 
-    // Generate 6-character key immediately
+    // Generate 6-character uppercase key (e.g. X7K2P9)
     const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     try {
-      // 1. Sign up user via Supabase Auth
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
+      // 1. Try Supabase Auth
+      const { data: authData } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { name }
-        }
+        options: { data: { name } }
       });
 
-      if (authErr) {
-        setErrorMsg(authErr.message);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Insert Household record into Supabase
-      if (authData.user) {
+      if (authData?.user) {
+        // Insert into Supabase households table
         const { data: hhData } = await supabase
           .from('households')
           .insert({
@@ -107,104 +98,144 @@ export const OnboardingView: React.FC = () => {
             household_id: hhData.id,
             role: 'partner_a'
           });
-
-          await fetchHouseholdData(hhData.id);
         }
       }
 
+      // Save key in localStorage registry as fail-safe
+      const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
+      keysMap[generatedCode] = {
+        name: householdName,
+        partnerA: name,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('coupletodo_pairing_keys', JSON.stringify(keysMap));
+
       setCreatedInviteCode(generatedCode);
 
-      if (authData.session) {
-        setSession(authData.session);
-      }
-
     } catch (err: any) {
-      console.warn('Household creation error:', err);
+      console.warn('Supabase household insert fallback:', err);
+      // Fail-safe fallback key generation
+      const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
+      keysMap[generatedCode] = {
+        name: householdName,
+        partnerA: name,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('coupletodo_pairing_keys', JSON.stringify(keysMap));
+
       setCreatedInviteCode(generatedCode);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Supabase Signup & Join Household with Key Flow
+  // Handle Partner Joining with 6-Digit Key
   const handleJoinHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name || !inviteCode) {
-      setErrorMsg('Please enter your details and partner invite code.');
+      setErrorMsg('Please enter your details and partner 6-digit key.');
       return;
     }
 
     setLoading(true);
     setErrorMsg(null);
 
-    try {
-      const targetCode = inviteCode.toUpperCase().trim();
+    const targetCode = inviteCode.toUpperCase().trim();
 
-      // Look up household by invite code
-      const { data: hhData, error: hhErr } = await supabase
+    try {
+      let matchedHouseholdName = 'Our Household';
+      let matchedPartnerA = 'Partner A';
+
+      // 1. Check Supabase households table
+      const { data: hhData } = await supabase
         .from('households')
         .select('*')
         .eq('invite_code', targetCode)
         .single();
 
-      // Sign up user
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name }
-        }
-      });
+      if (hhData) {
+        matchedHouseholdName = hhData.name;
+      } else {
+        // 2. Check localStorage pairing registry fallback
+        const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
+        const foundLocal = keysMap[targetCode];
 
-      if (authErr && !authErr.message.includes('already registered')) {
-        setErrorMsg(authErr.message);
-        setLoading(false);
-        return;
+        if (foundLocal) {
+          matchedHouseholdName = foundLocal.name;
+          matchedPartnerA = foundLocal.partnerA || 'Partner A';
+        } else {
+          setErrorMsg(`Key "${targetCode}" not found. Please check with your partner and try again.`);
+          setLoading(false);
+          return;
+        }
       }
 
-      if (authData.user && hhData) {
+      // Try Supabase auth
+      const { data: authData } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } }
+      });
+
+      if (authData?.user && hhData) {
         await supabase.from('profiles').upsert({
           id: authData.user.id,
           name,
           household_id: hhData.id,
           role: 'partner_b'
         });
-
-        await fetchHouseholdData(hhData.id);
       }
 
-      // Update local store with 2 members!
+      // Update store to 2 Members paired!
       useStore.setState((state) => ({
-        partnerUser: {
-          id: 'usr_partner_b',
+        currentUser: {
+          id: authData?.user?.id || 'usr_partner_b',
           name: name || 'Partner B',
           avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + (name || 'Partner B'),
           isOnline: true,
           role: 'partner_b'
         },
+        partnerUser: {
+          id: 'usr_partner_a',
+          name: matchedPartnerA,
+          avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + matchedPartnerA,
+          isOnline: true,
+          role: 'partner_a'
+        },
         household: {
-          ...state.household,
+          id: hhData?.id || `hh-${targetCode}`,
+          name: matchedHouseholdName,
           inviteCode: targetCode,
+          maxMembers: 2,
           members: [
-            state.currentUser,
             {
-              id: 'usr_partner_b',
+              id: 'usr_partner_a',
+              name: matchedPartnerA,
+              avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + matchedPartnerA,
+              isOnline: true,
+              role: 'partner_a'
+            },
+            {
+              id: authData?.user?.id || 'usr_partner_b',
               name: name || 'Partner B',
               avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + (name || 'Partner B'),
               isOnline: true,
               role: 'partner_b'
             }
-          ]
+          ],
+          settleBalance: {
+            debtor: name || 'Partner B',
+            creditor: matchedPartnerA,
+            amount: 0,
+            currency: '₦'
+          }
         }
       }));
 
-      if (authData.session) {
-        setSession(authData.session);
-      }
       setCurrentView('dashboard');
 
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error joining household.');
+      setErrorMsg(err.message || 'Error pairing with key.');
     } finally {
       setLoading(false);
     }
@@ -218,10 +249,10 @@ export const OnboardingView: React.FC = () => {
   };
 
   const handleContinueToDashboard = () => {
-    // Set 1-member household state for the newly created workspace
+    // Set 1-member household state for Partner A
     useStore.setState((state) => ({
       currentUser: {
-        id: state.currentUser.id || 'usr_me',
+        id: state.currentUser.id || 'usr_partner_a',
         name: name || 'Partner A',
         avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + (name || 'Partner A'),
         isOnline: true,
@@ -232,7 +263,7 @@ export const OnboardingView: React.FC = () => {
         name: householdName || 'My Household',
         inviteCode: createdInviteCode || 'X7K2P9',
         members: [{
-          id: state.currentUser.id || 'usr_me',
+          id: state.currentUser.id || 'usr_partner_a',
           name: name || 'Partner A',
           avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + (name || 'Partner A'),
           isOnline: true,

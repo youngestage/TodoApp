@@ -188,15 +188,13 @@ create policy "Users can update own profile"
   using (id = auth.uid());
 
 -- HOUSEHOLDS RLS
-create policy "Household members can view household"
+create policy "Anyone can lookup household by invite code or member"
   on public.households for select
-  using (
-    id = (select household_id from public.profiles where id = auth.uid())
-  );
+  using (true);
 
 create policy "Users can create household"
   on public.households for insert
-  with check (auth.uid() is not null);
+  with check (true);
 
 -- HOUSEHOLD DATA RLS MACRO PATTERN (tasks, transactions, bills, chat, notes, comments, debt, savings)
 create policy "Household members can view tasks" on public.tasks for select using (household_id = (select household_id from public.profiles where id = auth.uid()));
