@@ -140,7 +140,7 @@ const defaultUserAsa: User = {
 const defaultHousehold: Household = {
   id: 'hh_initial',
   name: 'My Household',
-  inviteCode: 'CREATE-KEY',
+  inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
   maxMembers: 2,
   members: [defaultUserLeslie],
   settleBalance: {

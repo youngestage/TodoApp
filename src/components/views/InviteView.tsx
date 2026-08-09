@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
@@ -7,31 +7,57 @@ import { Copy, TickCircle, Heart, People, ArrowLeft, ArrowRight } from 'iconsax-
 export const InviteView: React.FC = () => {
   const { household, setCurrentView, currentUser } = useStore();
   const [copied, setCopied] = useState(false);
+  const [displayCode, setDisplayCode] = useState(household.inviteCode || 'X7K2P9');
+
+  useEffect(() => {
+    // If code is placeholder or missing, generate a real 6-digit code
+    if (!household.inviteCode || household.inviteCode === 'CREATE-KEY' || household.inviteCode === 'JOIN-NOW') {
+      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      setDisplayCode(newCode);
+      useStore.setState((state) => ({
+        household: {
+          ...state.household,
+          inviteCode: newCode
+        }
+      }));
+
+      // Cache in localStorage registry
+      const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
+      keysMap[newCode] = {
+        name: household.name || 'My Household',
+        partnerA: currentUser.name || 'Partner A',
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('coupletodo_pairing_keys', JSON.stringify(keysMap));
+    } else {
+      setDisplayCode(household.inviteCode);
+    }
+  }, [household.inviteCode, currentUser.name, household.name]);
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(household.inviteCode);
+    navigator.clipboard.writeText(displayCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-[85vh] flex items-center justify-center p-4 relative overflow-hidden select-none">
       <div className="relative z-10 w-full max-w-lg space-y-6">
         
         <button
-          onClick={() => setCurrentView('onboarding')}
-          className="inline-flex items-center space-x-1.5 text-xs text-[#6B6560] hover:text-[#231F1E] font-medium transition-colors"
+          onClick={() => setCurrentView('dashboard')}
+          className="inline-flex items-center space-x-1.5 text-xs text-[#6B6560] hover:text-[#231F1E] font-medium transition-colors border-0 bg-transparent cursor-pointer"
         >
           <ArrowLeft size={16} variant="Linear" />
-          <span>Back to options</span>
+          <span>Back to Dashboard</span>
         </button>
 
-        <Card className="p-8 space-y-6 text-center border-0 shadow-none relative overflow-hidden">
+        <Card className="p-8 space-y-6 text-center border-0 shadow-none relative overflow-hidden bg-white">
           <div className="space-y-3">
             <img src="/partner_invite.svg" alt="Partner Pairing Invite" className="w-28 h-28 mx-auto object-contain drop-shadow-xs" />
 
             <h2 className="font-display text-3xl font-extrabold text-[#231F1E]">
-              {household.name}
+              {household.name || 'My Household'}
             </h2>
             <p className="text-xs text-[#6B6560]">
               Share this code with your partner to pair your household budget & tasks.
@@ -40,7 +66,7 @@ export const InviteView: React.FC = () => {
 
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#F5F3EF] border-0 text-xs font-mono text-[#6B6560]">
             <People size={14} variant="Bold" className="text-[#8964B3]" />
-            <span>Max household capacity: {household.maxMembers} partners</span>
+            <span>Max household capacity: {household.maxMembers || 2} partners</span>
           </div>
 
           <div className="space-y-3">
@@ -48,14 +74,14 @@ export const InviteView: React.FC = () => {
               Unique Household Pairing Code
             </label>
 
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#FBF9F5] border-0">
-              <span className="font-mono text-xl sm:text-2xl font-bold tracking-wider text-[#231F1E] pl-2">
-                {household.inviteCode}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#FBF9F5] border-0">
+              <span className="font-mono text-2xl sm:text-3xl font-extrabold tracking-widest text-[#231F1E] pl-2">
+                {displayCode}
               </span>
 
               <button
                 onClick={handleCopyCode}
-                className={`py-2 px-4 rounded-xl text-xs font-semibold flex items-center space-x-1.5 border-0 transition-all ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-bold flex items-center space-x-1.5 border-0 transition-all cursor-pointer ${
                   copied
                     ? 'bg-[#4A7C59] text-white'
                     : 'bg-[#EF713F] hover:bg-[#D95220] text-white'
@@ -101,7 +127,7 @@ export const InviteView: React.FC = () => {
 
           <button
             onClick={() => setCurrentView('dashboard')}
-            className="w-full py-3 px-4 rounded-xl bg-[#231F1E] hover:bg-black text-white text-sm font-medium flex items-center justify-center space-x-2 border-0 transition-all"
+            className="w-full py-3.5 px-4 rounded-2xl bg-[#231F1E] hover:bg-black text-white text-sm font-bold flex items-center justify-center space-x-2 border-0 transition-all cursor-pointer shadow-md"
           >
             <span>Proceed to Dashboard</span>
             <ArrowRight size={16} variant="Linear" />
