@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from './store/useStore';
 import { supabase } from './lib/supabase';
@@ -21,9 +21,17 @@ import { QuickNoteModal } from './components/views/QuickNoteModal';
 import { SettingsModal } from './components/views/SettingsModal';
 import { NotificationsDrawer } from './components/views/NotificationsDrawer';
 import { WelcomeWoosh } from './components/ui/WelcomeWoosh';
+import { Lock, TickCircle, ArrowRight, CloseCircle } from 'iconsax-react';
 
 export default function App() {
-  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen } = useStore();
+  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted } = useStore();
+
+  // Reset Password Modal State
+  const [isResetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -32,9 +40,13 @@ export default function App() {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         setSession(session);
+      }
+      // When user clicks Password Reset Link in Email
+      if (event === 'PASSWORD_RECOVERY') {
+        setResetPasswordModalOpen(true);
       }
     });
 
@@ -47,6 +59,38 @@ export default function App() {
       setCurrentView('onboarding');
     }
   }, [isOnboardingCompleted, currentView, setCurrentView]);
+
+  // Save New Password Handler
+  const handleSaveNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setPasswordError(null);
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPasswordError(error.message);
+      } else {
+        setPasswordUpdated(true);
+        setTimeout(() => {
+          setResetPasswordModalOpen(false);
+          setPasswordUpdated(false);
+          setNewPassword('');
+          setOnboardingCompleted(true);
+          setCurrentView('dashboard');
+        }, 2000);
+      }
+    } catch (err: any) {
+      setPasswordError(err.message || 'Error updating password.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -113,6 +157,76 @@ export default function App() {
       <ContextualThreadDrawer />
       <QuickNoteModal />
       <SettingsModal />
+
+      {/* SET NEW PASSWORD MODAL (Triggered when clicking recovery link in email) */}
+      {isResetPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs cursor-pointer" onClick={() => setResetPasswordModalOpen(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="relative z-10 w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl border-0"
+          >
+            <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
+              <h3 className="font-bold text-xl text-[#231F1E]">Set New Password</h3>
+              <button
+                onClick={() => setResetPasswordModalOpen(false)}
+                className="text-[#6B6560] hover:text-[#231F1E] border-0 bg-transparent cursor-pointer"
+              >
+                <CloseCircle size={22} />
+              </button>
+            </div>
+
+            {passwordUpdated ? (
+              <div className="p-6 rounded-3xl bg-[#EBF3ED] text-center space-y-3 border-0">
+                <TickCircle size={40} variant="Bold" className="text-[#4A7C59] mx-auto" />
+                <h4 className="font-bold text-lg text-[#231F1E]">Password Updated! 🎉</h4>
+                <p className="text-xs text-[#6B6560]">Your password has been updated. Redirecting to workspace...</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveNewPassword} className="space-y-4">
+                {passwordError && (
+                  <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
+                    ⚠️ {passwordError}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase">New Password</label>
+                  <div className="relative flex items-center">
+                    <Lock size={18} variant="Linear" className="absolute left-3.5 text-[#6B6560]" />
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter at least 6 characters..."
+                      className="w-full pl-10 pr-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="w-full py-3.5 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
+                >
+                  {isUpdatingPassword ? (
+                    <span>Saving New Password...</span>
+                  ) : (
+                    <>
+                      <span>Save New Password & Continue</span>
+                      <ArrowRight size={18} variant="Linear" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </motion.div>
+        </div>
+      )}
 
     </div>
   );
