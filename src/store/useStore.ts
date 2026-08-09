@@ -30,6 +30,7 @@ interface StoreState {
   partnerUser: User;
   updateUserAvatar: (url: string) => void;
   household: Household;
+  updateHouseholdStartDate: (date: string) => void;
 
   // Privacy & Balance visibility
   hideBalances: boolean;
@@ -344,6 +345,12 @@ export const useStore = create<StoreState>((set, get) => ({
     currentUser: { ...state.currentUser, avatarUrl: url }
   })),
   household: defaultHousehold,
+  updateHouseholdStartDate: (date) => set((state) => ({
+    household: {
+      ...state.household,
+      relationshipStartDate: date
+    }
+  })),
 
   hideBalances: false,
   toggleHideBalances: () => set((state) => ({ hideBalances: !state.hideBalances })),

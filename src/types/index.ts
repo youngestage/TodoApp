@@ -14,6 +14,7 @@ export interface Household {
   inviteCode: string;
   maxMembers: number;
   members: User[];
+  relationshipStartDate?: string;
   settleBalance: {
     debtor: string;
     creditor: string;
