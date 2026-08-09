@@ -207,6 +207,7 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       await supabase.auth.signOut();
     } catch (err) {}
+    localStorage.removeItem('coupletodo_onboarding_completed');
     set({
       session: null,
       currentView: 'onboarding',
@@ -355,8 +356,11 @@ export const useStore = create<StoreState>((set, get) => ({
 
   currentView: 'onboarding',
   setCurrentView: (view) => set({ currentView: view, isFullChatActive: false }),
-  isOnboardingCompleted: false,
-  setOnboardingCompleted: (completed) => set({ isOnboardingCompleted: completed }),
+  isOnboardingCompleted: localStorage.getItem('coupletodo_onboarding_completed') === 'true',
+  setOnboardingCompleted: (completed) => {
+    localStorage.setItem('coupletodo_onboarding_completed', completed ? 'true' : 'false');
+    set({ isOnboardingCompleted: completed });
+  },
   currentUser: defaultUserLeslie,
   partnerUser: defaultUserAsa,
   updateUserAvatar: (url) => set((state) => ({

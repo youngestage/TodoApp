@@ -61,9 +61,17 @@ export default function App() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setSession(session);
+        setOnboardingCompleted(true);
+
+        const { data: prof } = await supabase.from('profiles').select('household_id').eq('id', session.user.id).single();
+        if (prof?.household_id) {
+          await fetchHouseholdData(prof.household_id);
+        }
+
+        setCurrentView('dashboard');
       }
     });
 
@@ -71,9 +79,17 @@ export default function App() {
       setResetPasswordModalOpen(true);
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         setSession(session);
+        if (event === 'SIGNED_IN') {
+          setOnboardingCompleted(true);
+          const { data: prof } = await supabase.from('profiles').select('household_id').eq('id', session.user.id).single();
+          if (prof?.household_id) {
+            await fetchHouseholdData(prof.household_id);
+          }
+          setCurrentView('dashboard');
+        }
       }
       // When user clicks Password Reset Link in Email
       if (event === 'PASSWORD_RECOVERY') {
