@@ -1,0 +1,18 @@
+{
+  "short_name": "CoupleTodo",
+  "name": "Couples Studio - Shared Household & Budget",
+  "icons": [
+    {
+      "src": "/logo.svg?v=2",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FBF9F5",
+  "theme_color": "#EF713F",
+  "display": "standalone",
+  "orientation": "portrait",
+  "description": "Shared household budgeting, joint task completion, and contextual chat for couples."
+}
