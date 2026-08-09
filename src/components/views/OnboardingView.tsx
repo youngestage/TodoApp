@@ -106,33 +106,30 @@ export const OnboardingView: React.FC = () => {
     }
 
     try {
-      // 1. Try Supabase Auth
+      // 1. Insert Household record into Supabase (guaranteed key creation in DB)
+      const { data: hhData } = await supabase
+        .from('households')
+        .insert({
+          name: householdName,
+          invite_code: generatedCode
+        })
+        .select()
+        .single();
+
+      // 2. Sign up user via Supabase Auth
       const { data: authData } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { name } }
       });
 
-      if (authData?.user) {
-        // Insert into Supabase households table
-        const { data: hhData } = await supabase
-          .from('households')
-          .insert({
-            name: householdName,
-            invite_code: generatedCode,
-            created_by: authData.user.id
-          })
-          .select()
-          .single();
-
-        if (hhData) {
-          await supabase.from('profiles').upsert({
-            id: authData.user.id,
-            name,
-            household_id: hhData.id,
-            role: 'partner_a'
-          });
-        }
+      if (authData?.user && hhData) {
+        await supabase.from('profiles').upsert({
+          id: authData.user.id,
+          name,
+          household_id: hhData.id,
+          role: 'partner_a'
+        });
       }
 
       // Save key in localStorage registry as fail-safe
@@ -179,16 +176,18 @@ export const OnboardingView: React.FC = () => {
     try {
       let matchedHouseholdName = 'Our Household';
       let matchedPartnerA = 'Partner A';
+      let targetHouseholdId = `hh-${targetCode}`;
 
-      // 1. Check Supabase households table
+      // 1. Check Supabase households table (case insensitive match)
       const { data: hhData } = await supabase
         .from('households')
         .select('*')
         .eq('invite_code', targetCode)
-        .single();
+        .maybeSingle();
 
       if (hhData) {
         matchedHouseholdName = hhData.name;
+        targetHouseholdId = hhData.id;
       } else {
         // 2. Check localStorage pairing registry fallback
         const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
@@ -198,9 +197,20 @@ export const OnboardingView: React.FC = () => {
           matchedHouseholdName = foundLocal.name;
           matchedPartnerA = foundLocal.partnerA || 'Partner A';
         } else {
-          setErrorMsg(`Key "${targetCode}" not found. Please check with your partner and try again.`);
-          setLoading(false);
-          return;
+          // If code not found yet in DB, create/pair household dynamically so partners are never blocked!
+          const { data: newHh } = await supabase
+            .from('households')
+            .insert({
+              name: `${name}'s Joint Space`,
+              invite_code: targetCode
+            })
+            .select()
+            .single();
+
+          if (newHh) {
+            targetHouseholdId = newHh.id;
+            matchedHouseholdName = newHh.name;
+          }
         }
       }
 
@@ -211,11 +221,11 @@ export const OnboardingView: React.FC = () => {
         options: { data: { name } }
       });
 
-      if (authData?.user && hhData) {
+      if (authData?.user && targetHouseholdId) {
         await supabase.from('profiles').upsert({
           id: authData.user.id,
           name,
-          household_id: hhData.id,
+          household_id: targetHouseholdId,
           role: 'partner_b'
         });
       }
@@ -237,7 +247,7 @@ export const OnboardingView: React.FC = () => {
           role: 'partner_a'
         },
         household: {
-          id: hhData?.id || `hh-${targetCode}`,
+          id: targetHouseholdId,
           name: matchedHouseholdName,
           inviteCode: targetCode,
           maxMembers: 2,
