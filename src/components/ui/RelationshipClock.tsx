@@ -43,14 +43,17 @@ export const RelationshipClock: React.FC = () => {
       {/* Couple Avatars & Live Digital Duration */}
       <div className="flex items-center space-x-4 min-w-0">
         
-        {/* Avatars with Heart Badge */}
-        <div className="relative flex items-center shrink-0">
-          <Avatar name={currentUser.name} src={currentUser.avatarUrl} size="md" />
-          <div className="-ml-3 z-10">
-            <Avatar name={partnerUser.name} src={partnerUser.avatarUrl} size="md" />
-          </div>
-          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-20 w-5 h-5 rounded-full bg-[#EF713F] text-white flex items-center justify-center shadow-sm">
-            <Heart size={10} variant="Bold" />
+        {/* Avatars with Heart Badge & Milestone SVG */}
+        <div className="relative flex items-center shrink-0 space-x-2">
+          <img src="/relationship_milestone.svg" alt="Relationship Milestone" className="w-10 h-10 object-contain hidden sm:block shrink-0" />
+          <div className="relative flex items-center shrink-0">
+            <Avatar name={currentUser.name} src={currentUser.avatarUrl} size="md" />
+            <div className="-ml-3 z-10">
+              <Avatar name={partnerUser.name} src={partnerUser.avatarUrl} size="md" />
+            </div>
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-20 w-5 h-5 rounded-full bg-[#EF713F] text-white flex items-center justify-center shadow-sm">
+              <Heart size={10} variant="Bold" />
+            </div>
           </div>
         </div>
 

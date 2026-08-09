@@ -32,10 +32,10 @@ export const SettleUpModal: React.FC = () => {
             transition={{ type: 'spring', stiffness: 220, damping: 26, mass: 0.8 }}
             className="relative z-10 w-full max-w-md bg-white rounded-3xl border-0 shadow-2xl p-6 space-y-6 text-center overflow-hidden"
           >
-            <div className="flex items-center justify-between border-0 pb-3">
+            <div className="flex items-center justify-between border-0 pb-1">
               <div className="flex items-center space-x-2">
                 <Heart size={20} variant="Bold" className="text-[#EF713F]" />
-                <h3 className="font-zodiak text-xl font-bold text-[#231F1E]">Pay Household Balance</h3>
+                <h3 className="font-bold text-xl text-[#231F1E]">Pay Household Balance</h3>
               </div>
               <button
                 onClick={() => setSettleUpOpen(false)}
@@ -44,6 +44,8 @@ export const SettleUpModal: React.FC = () => {
                 <CloseCircle size={22} variant="Broken" />
               </button>
             </div>
+
+            <img src="/settle_up.svg" alt="Settle Up Balance" className="w-28 h-28 mx-auto object-contain drop-shadow-xs py-1" />
 
             <div className="flex items-center justify-center space-x-4 py-2">
               <div className="text-center space-y-1">

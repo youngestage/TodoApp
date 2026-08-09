@@ -144,7 +144,8 @@ export const OnboardingView: React.FC = () => {
       <div className="relative z-10 w-full max-w-xl space-y-6">
         
         {/* Top Header */}
-        <div className="text-center">
+        <div className="text-center space-y-4">
+          <img src="/onboarding_hero.svg" alt="Couple Studio Hero" className="w-32 sm:w-40 h-32 sm:h-40 mx-auto object-contain drop-shadow-sm" />
           <h1 className="font-display text-3xl sm:text-5xl font-extrabold text-[#231F1E] tracking-tight leading-tight">
             Harmonious household budgeting & joint tasks.
           </h1>

@@ -27,10 +27,8 @@ export const InviteView: React.FC = () => {
         </button>
 
         <Card className="p-8 space-y-6 text-center border-0 shadow-none relative overflow-hidden">
-          <div className="space-y-2">
-            <div className="w-12 h-12 rounded-full bg-[#FAF6EB] border-0 mx-auto flex items-center justify-center">
-              <Heart size={26} variant="Bold" className="text-[#EF713F]" />
-            </div>
+          <div className="space-y-3">
+            <img src="/partner_invite.svg" alt="Partner Pairing Invite" className="w-28 h-28 mx-auto object-contain drop-shadow-xs" />
 
             <h2 className="font-display text-3xl font-extrabold text-[#231F1E]">
               {household.name}
