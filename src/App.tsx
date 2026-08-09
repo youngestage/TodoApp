@@ -21,10 +21,37 @@ import { QuickNoteModal } from './components/views/QuickNoteModal';
 import { SettingsModal } from './components/views/SettingsModal';
 import { NotificationsDrawer } from './components/views/NotificationsDrawer';
 import { WelcomeWoosh } from './components/ui/WelcomeWoosh';
+import { sendPushNotification } from './utils/notifications';
 import { Lock, TickCircle, ArrowRight, CloseCircle } from 'iconsax-react';
 
 export default function App() {
-  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted } = useStore();
+  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData } = useStore();
+
+  // Supabase Realtime: Sync partner join events live & send push notification
+  useEffect(() => {
+    if (!household.id) return;
+
+    const channel = supabase.channel(`realtime_household_${household.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'profiles',
+        filter: `household_id=eq.${household.id}`
+      }, async (payload: any) => {
+        // Re-fetch household members & profiles
+        await fetchHouseholdData(household.id);
+
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const partnerName = payload.new?.name || 'Partner';
+          sendPushNotification('Partner Joined Space! 🎉', `${partnerName} has joined your household workspace!`);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [household.id]);
 
   // Reset Password Modal State
   const [isResetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);

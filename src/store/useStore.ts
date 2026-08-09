@@ -137,10 +137,19 @@ const defaultUserAsa: User = {
   role: 'partner_b'
 };
 
+const getPermanentInviteCode = () => {
+  let code = localStorage.getItem('coupletodo_permanent_invite_code');
+  if (!code) {
+    code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    localStorage.setItem('coupletodo_permanent_invite_code', code);
+  }
+  return code;
+};
+
 const defaultHousehold: Household = {
   id: 'hh_initial',
   name: 'My Household',
-  inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+  inviteCode: getPermanentInviteCode(),
   maxMembers: 2,
   members: [defaultUserLeslie],
   settleBalance: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
@@ -7,37 +7,13 @@ import { Copy, TickCircle, Heart, People, ArrowLeft, ArrowRight } from 'iconsax-
 export const InviteView: React.FC = () => {
   const { household, setCurrentView, currentUser } = useStore();
   const [copied, setCopied] = useState(false);
-  const [displayCode, setDisplayCode] = useState(household.inviteCode || 'X7K2P9');
 
-  useEffect(() => {
-    // If code is placeholder or missing, generate a real 6-digit code
-    if (!household.inviteCode || household.inviteCode === 'CREATE-KEY' || household.inviteCode === 'JOIN-NOW') {
-      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      setDisplayCode(newCode);
-      useStore.setState((state) => ({
-        household: {
-          ...state.household,
-          inviteCode: newCode
-        }
-      }));
-
-      // Cache in localStorage registry
-      const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
-      keysMap[newCode] = {
-        name: household.name || 'My Household',
-        partnerA: currentUser.name || 'Partner A',
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('coupletodo_pairing_keys', JSON.stringify(keysMap));
-    } else {
-      setDisplayCode(household.inviteCode);
-    }
-  }, [household.inviteCode, currentUser.name, household.name]);
+  const displayCode = household.inviteCode || localStorage.getItem('coupletodo_permanent_invite_code') || 'X7K2P9';
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(displayCode);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCodeCopied(false), 2500);
   };
 
   return (
