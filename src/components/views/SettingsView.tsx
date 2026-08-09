@@ -24,7 +24,8 @@ import {
   Heart,
   Card,
   Camera,
-  Notification
+  Notification,
+  LogoutCurve
 } from 'iconsax-react';
 
 export const SettingsView: React.FC = () => {
@@ -49,7 +50,8 @@ export const SettingsView: React.FC = () => {
     addSavingsGoal,
     recurringBills,
     household,
-    setCurrentView
+    setCurrentView,
+    logout
   } = useStore();
 
   const [activeSection, setActiveSection] = useState<'profile' | 'global' | 'categories' | 'accounts' | 'debt'>('profile');
@@ -159,16 +161,27 @@ export const SettingsView: React.FC = () => {
   return (
     <div className="space-y-6 pb-20 md:pb-6 select-none max-w-4xl mx-auto">
       
-      {/* 1. Simplified Header */}
+      {/* 1. Simplified Header with Log Out CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border-0 shadow-none">
         <div className="space-y-0.5">
           <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-[#231F1E] tracking-tight">
             Settings & Preferences
           </h1>
           <p className="text-xs sm:text-sm text-[#6B6560]">
-            Manage profile photo, push notifications, currencies, categories & accounts
+            Manage profile photo, push notifications, invite code & accounts
           </p>
         </div>
+
+        {/* Prominent Red Log Out Button */}
+        <button
+          onClick={async () => {
+            await logout();
+          }}
+          className="px-4 py-2.5 rounded-2xl bg-[#FFF5F0] hover:bg-[#FFEAE0] text-[#EF713F] font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer border-0 shrink-0"
+        >
+          <LogoutCurve size={18} variant="Bold" />
+          <span>Log Out</span>
+        </button>
       </div>
 
       {/* 2. Simplified Section Switcher */}
@@ -211,6 +224,41 @@ export const SettingsView: React.FC = () => {
             exit={{ opacity: 0, y: -6 }}
             className="space-y-4"
           >
+            {/* Household Partner Invite Link (Always Available for Existing Users) */}
+            <div className="bg-white rounded-3xl p-6 space-y-4 border-0 shadow-none">
+              <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
+                <div>
+                  <h3 className="font-bold text-lg text-[#231F1E]">Household Partner Invite Code</h3>
+                  <p className="text-xs text-[#6B6560]">Always accessible code for your partner to join your space</p>
+                </div>
+                <img src="/partner_invite.svg" alt="Invite Code" className="w-12 h-12 object-contain hidden sm:block" />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <div className="flex-1 px-4 py-3 bg-[#F6F3FA] rounded-2xl font-mono text-lg font-extrabold text-[#8964B3] tracking-widest text-center border-0">
+                  {household.inviteCode || 'LESLIE-ASA-2026'}
+                </div>
+
+                <button
+                  onClick={handleCopyCode}
+                  className="px-5 py-3 rounded-2xl bg-[#8964B3] text-white hover:bg-[#7852A4] transition-colors cursor-pointer border-0 flex items-center space-x-1.5 font-bold text-xs shrink-0"
+                  title="Copy Invite Code"
+                >
+                  {copied ? (
+                    <>
+                      <TickCircle size={18} variant="Bold" className="text-white" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} variant="Linear" />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
             {/* Profile Photo Upload Card */}
             <div className="bg-white rounded-3xl p-6 space-y-6 border-0 shadow-none">
               <div className="space-y-1 border-b border-[#F5F3EF] pb-4">
@@ -326,28 +374,6 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {/* Household Partner Invite Link */}
-            <div className="bg-white rounded-3xl p-6 space-y-4 border-0 shadow-none">
-              <div className="space-y-1 border-b border-[#F5F3EF] pb-3">
-                <h3 className="font-bold text-lg text-[#231F1E]">Partner Invite Code</h3>
-                <p className="text-xs text-[#6B6560]">Share with your partner to sync your household workspace</p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <div className="flex-1 px-4 py-2.5 bg-[#FBF9F5] rounded-2xl font-mono text-sm font-bold text-[#231F1E] text-center border-0 tracking-wider">
-                  {household.inviteCode}
-                </div>
-
-                <button
-                  onClick={handleCopyCode}
-                  className="p-3 rounded-2xl bg-[#231F1E] text-white hover:bg-black transition-colors cursor-pointer border-0 flex items-center justify-center"
-                  title="Copy Invite Code"
-                >
-                  {copied ? <TickCircle size={18} variant="Bold" className="text-[#4A7C59]" /> : <Copy size={18} variant="Linear" />}
-                </button>
-              </div>
-            </div>
           </motion.div>
         )}
 
@@ -362,89 +388,61 @@ export const SettingsView: React.FC = () => {
           >
             <div className="bg-white rounded-3xl p-6 space-y-6 border-0 shadow-none">
               <div className="space-y-1 border-b border-[#F5F3EF] pb-4">
-                <h3 className="font-bold text-lg text-[#231F1E]">Global Preferences</h3>
-                <p className="text-xs text-[#6B6560]">Set your base currency symbol, fiscal year, and calendar start day</p>
+                <h3 className="font-bold text-lg text-[#231F1E]">Currency & Localization</h3>
+                <p className="text-xs text-[#6B6560]">Configure base currency symbol for split calculation</p>
               </div>
 
-              {/* Currency Selector */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
-                  Base Currency Symbol
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {[
-                    { symbol: '₦', label: 'Nigerian Naira (₦)' },
-                    { symbol: '$', label: 'US Dollar ($)' },
-                    { symbol: '€', label: 'Euro (€)' },
-                    { symbol: '£', label: 'British Pound (£)' }
-                  ].map((item) => (
-                    <button
-                      key={item.symbol}
-                      onClick={() => updatePreferences({ currency: item.symbol })}
-                      className={`p-3 rounded-2xl text-xs font-semibold transition-all border-0 cursor-pointer flex items-center justify-between ${
-                        preferences.currency === item.symbol
-                          ? 'bg-[#EF713F] text-white font-bold'
-                          : 'bg-[#FBF9F5] text-[#231F1E] hover:bg-[#F5F3EF]'
-                      }`}
-                    >
-                      <span className="font-mono text-base">{item.symbol}</span>
-                      <span>{item.label.split(' ')[0]}</span>
-                    </button>
-                  ))}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider mb-2">
+                    Household Base Currency
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {['₦', '$', '£', '€'].map((sym) => (
+                      <button
+                        key={sym}
+                        onClick={() => updatePreferences({ currency: sym })}
+                        className={`p-3.5 rounded-2xl font-mono text-lg font-bold border-0 cursor-pointer transition-all ${
+                          preferences.currency === sym
+                            ? 'bg-[#231F1E] text-white shadow-md'
+                            : 'bg-[#FBF9F5] text-[#231F1E] hover:bg-[#FAF6EB]'
+                        }`}
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Fiscal Year */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
-                  Active Fiscal Budget Year
-                </label>
-                <div className="flex items-center space-x-2">
-                  {[2025, 2026, 2027].map((yr) => (
-                    <button
-                      key={yr}
-                      onClick={() => updatePreferences({ budgetYear: yr })}
-                      className={`px-5 py-2.5 rounded-2xl text-xs font-mono font-bold transition-all border-0 cursor-pointer ${
-                        preferences.budgetYear === yr
-                          ? 'bg-[#231F1E] text-white'
-                          : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
-                      }`}
-                    >
-                      FY {yr}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Calendar Start Day */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
-                  Week Starts On
-                </label>
-                <div className="flex items-center space-x-2">
-                  {(['Monday', 'Sunday'] as const).map((day) => (
-                    <button
-                      key={day}
-                      onClick={() => updatePreferences({ firstDayOfWeek: day })}
-                      className={`px-5 py-2.5 rounded-2xl text-xs font-semibold transition-all border-0 cursor-pointer ${
-                        preferences.firstDayOfWeek === day
-                          ? 'bg-[#4A7C59] text-white font-bold'
-                          : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  ))}
+                <div>
+                  <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider mb-2">
+                    First Day of the Week
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['Sunday', 'Monday'].map((day) => (
+                      <button
+                        key={day}
+                        onClick={() => updatePreferences({ firstDayOfWeek: day as any })}
+                        className={`p-3 rounded-2xl font-semibold text-xs border-0 cursor-pointer transition-all ${
+                          preferences.firstDayOfWeek === day
+                            ? 'bg-[#231F1E] text-white'
+                            : 'bg-[#FBF9F5] text-[#231F1E] hover:bg-[#FAF6EB]'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* SECTION 3: CATEGORY MANAGER */}
+        {/* SECTION 3: CATEGORY TREE */}
         {activeSection === 'categories' && (
           <motion.div
-            key="categories-sec"
+            key="cat-sec"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
@@ -452,78 +450,75 @@ export const SettingsView: React.FC = () => {
           >
             <div className="bg-white rounded-3xl p-6 space-y-6 border-0 shadow-none">
               <div className="space-y-1 border-b border-[#F5F3EF] pb-4">
-                <h3 className="font-bold text-lg text-[#231F1E]">Categories & Subcategories</h3>
-                <p className="text-xs text-[#6B6560]">Customize subcategories under the 6 main parent categories</p>
+                <h3 className="font-bold text-lg text-[#231F1E]">Budget Category Manager</h3>
+                <p className="text-xs text-[#6B6560]">Manage up to 20 subcategories per master group</p>
               </div>
 
-              {/* Primary Category Selector */}
+              {/* Master Group Pills */}
               <div className="flex items-center space-x-2 overflow-x-auto pb-1">
-                {(['Income', 'Expenses', 'Bills', 'Savings', 'Investments', 'Debt'] as BudgetCategoryType[]).map((cat) => (
+                {(['Income', 'Expenses', 'Bills', 'Savings', 'Investments', 'Debt'] as BudgetCategoryType[]).map((group) => (
                   <button
-                    key={cat}
+                    key={group}
                     onClick={() => {
-                      setSelectedParentCategory(cat);
+                      setSelectedParentCategory(group);
                       setSubcategoryError(null);
                     }}
-                    className={`px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer ${
-                      selectedParentCategory === cat
-                        ? 'bg-[#EF713F] text-white font-bold'
-                        : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer ${
+                      selectedParentCategory === group
+                        ? 'bg-[#EF713F] text-white'
+                        : 'bg-[#FBF9F5] text-[#6B6560] hover:text-[#231F1E]'
                     }`}
                   >
-                    {cat}
+                    {group}
                   </button>
                 ))}
               </div>
 
               {/* Add New Subcategory Form */}
-              <form onSubmit={handleAddSubcategorySubmit} className="space-y-2">
-                <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
-                  Add Subcategory to {selectedParentCategory}
-                </label>
+              <form onSubmit={handleAddSubcategorySubmit} className="space-y-3 pt-2">
                 <div className="flex items-center space-x-2">
                   <input
                     type="text"
                     value={newSubcategoryName}
                     onChange={(e) => setNewSubcategoryName(e.target.value)}
-                    placeholder={`E.g. Organic Produce, Subscriptions, Anniversary Pot...`}
-                    className="flex-1 px-4 py-2.5 bg-[#FBF9F5] rounded-2xl text-xs text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
+                    placeholder={`New subcategory under ${selectedParentCategory}...`}
+                    className="flex-1 px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2.5 bg-[#231F1E] hover:bg-black text-white text-xs font-bold rounded-2xl border-0 cursor-pointer flex items-center space-x-1 shrink-0"
+                    className="px-5 py-3 rounded-2xl bg-[#231F1E] text-white hover:bg-black font-bold text-xs border-0 cursor-pointer transition-colors flex items-center space-x-1"
                   >
-                    <Add size={16} variant="Linear" />
+                    <Add size={16} />
                     <span>Add</span>
                   </button>
                 </div>
 
                 {subcategoryError && (
-                  <p className="text-xs text-[#EF713F] font-mono font-semibold pt-1">
+                  <p className="text-xs text-[#EF713F] font-mono font-semibold">
                     ⚠️ {subcategoryError}
                   </p>
                 )}
               </form>
 
-              {/* Subcategories List */}
+              {/* Current Subcategories Chips */}
               <div className="space-y-2 pt-2">
-                <span className="text-xs font-mono font-semibold text-[#6B6560] uppercase tracking-wider block">
-                  Active Subcategories ({(subcategories[selectedParentCategory] || []).length}/20)
-                </span>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {(subcategories[selectedParentCategory] || []).map((sub) => (
+                <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
+                  Active Subcategories ({subcategories[selectedParentCategory]?.length || 0}/20)
+                </label>
+
+                <div className="flex flex-wrap gap-2">
+                  {(subcategories[selectedParentCategory] || []).map((item) => (
                     <div
-                      key={sub}
-                      className="p-3 rounded-2xl bg-[#FBF9F5] flex items-center justify-between text-xs font-semibold text-[#231F1E] border-0"
+                      key={item}
+                      className="px-3.5 py-2 rounded-2xl bg-[#FBF9F5] text-xs font-semibold text-[#231F1E] flex items-center space-x-2 border-0"
                     >
-                      <span>{sub}</span>
+                      <span>{item}</span>
                       <button
-                        onClick={() => deleteSubcategory(selectedParentCategory, sub)}
-                        className="p-1 text-[#6B6560] hover:text-[#EF713F] border-0 bg-transparent cursor-pointer"
-                        title="Delete Subcategory"
+                        onClick={() => deleteSubcategory(selectedParentCategory, item)}
+                        className="text-[#6B6560] hover:text-[#EF713F] border-0 bg-transparent cursor-pointer p-0.5"
+                        title="Remove"
                       >
-                        <Trash size={16} variant="Linear" />
+                        <Trash size={14} />
                       </button>
                     </div>
                   ))}
@@ -536,7 +531,7 @@ export const SettingsView: React.FC = () => {
         {/* SECTION 4: PAYMENT ACCOUNTS */}
         {activeSection === 'accounts' && (
           <motion.div
-            key="accounts-sec"
+            key="acc-sec"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
@@ -544,59 +539,50 @@ export const SettingsView: React.FC = () => {
           >
             <div className="bg-white rounded-3xl p-6 space-y-6 border-0 shadow-none">
               <div className="space-y-1 border-b border-[#F5F3EF] pb-4">
-                <h3 className="font-bold text-lg text-[#231F1E]">Payment Accounts Setup</h3>
-                <p className="text-xs text-[#6B6560]">Configure up to 10 customizable payment accounts for transaction tagging</p>
+                <h3 className="font-bold text-lg text-[#231F1E]">Payment Accounts Manager</h3>
+                <p className="text-xs text-[#6B6560]">Configure up to 10 payment accounts for fast transaction logging</p>
               </div>
 
-              <form onSubmit={handleAddAccountSubmit} className="space-y-2">
-                <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
-                  Add Payment Account Slot
-                </label>
+              <form onSubmit={handleAddAccountSubmit} className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <input
                     type="text"
                     value={newAccountName}
                     onChange={(e) => setNewAccountName(e.target.value)}
-                    placeholder="E.g. Moniepoint, Kuda (Asa), GTBank (Leslie)..."
-                    className="flex-1 px-4 py-2.5 bg-[#FBF9F5] rounded-2xl text-xs text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
+                    placeholder="E.g. Moniepoint (Leslie)..."
+                    className="flex-1 px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2.5 bg-[#231F1E] hover:bg-black text-white text-xs font-bold rounded-2xl border-0 cursor-pointer flex items-center space-x-1 shrink-0"
+                    className="px-5 py-3 rounded-2xl bg-[#231F1E] text-white hover:bg-black font-bold text-xs border-0 cursor-pointer transition-colors flex items-center space-x-1"
                   >
-                    <Add size={16} variant="Linear" />
-                    <span>Add Slot</span>
+                    <Add size={16} />
+                    <span>Add</span>
                   </button>
                 </div>
 
                 {accountError && (
-                  <p className="text-xs text-[#EF713F] font-mono font-semibold pt-1">
+                  <p className="text-xs text-[#EF713F] font-mono font-semibold">
                     ⚠️ {accountError}
                   </p>
                 )}
               </form>
 
-              <div className="space-y-2.5 pt-2">
-                <span className="text-xs font-mono font-semibold text-[#6B6560] uppercase tracking-wider block">
-                  Configured Accounts ({paymentAccounts.length}/10 Max)
-                </span>
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
+                  Configured Accounts ({paymentAccounts.length}/10)
+                </label>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {paymentAccounts.map((acc, i) => (
+                  {paymentAccounts.map((acc) => (
                     <div
                       key={acc}
-                      className="p-4 rounded-2xl bg-[#FBF9F5] flex items-center justify-between border-0"
+                      className="p-3.5 rounded-2xl bg-[#FBF9F5] flex items-center justify-between border-0"
                     >
-                      <div className="flex items-center space-x-2.5">
-                        <div className="w-7 h-7 rounded-xl bg-white text-[#EF713F] font-mono text-xs font-bold flex items-center justify-center">
-                          0{i + 1}
-                        </div>
-                        <span className="text-xs font-bold text-[#231F1E]">{acc}</span>
-                      </div>
-
+                      <span className="font-bold text-xs text-[#231F1E]">{acc}</span>
                       <button
                         onClick={() => deletePaymentAccount(acc)}
-                        className="p-1 text-[#6B6560] hover:text-[#EF713F] border-0 bg-transparent cursor-pointer"
+                        className="p-1 rounded-xl text-[#6B6560] hover:text-[#EF713F] border-0 bg-transparent cursor-pointer"
                         title="Remove Account"
                       >
                         <Trash size={16} variant="Linear" />
@@ -632,72 +618,22 @@ export const SettingsView: React.FC = () => {
                 <label className="block text-xs font-semibold text-[#6B6560] uppercase font-mono tracking-wider">
                   Repayment Engine Strategy
                 </label>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { id: 'Snowball', label: 'Debt Snowball', desc: 'Pay lowest balance first for quick psychological wins' },
-                    { id: 'Avalanche', label: 'Debt Avalanche', desc: 'Pay highest interest rate first to minimize interest' },
-                    { id: 'Minimum', label: 'Minimum Only', desc: 'Stick strictly to required minimum monthly payments' }
-                  ].map((strat) => (
+                <div className="grid grid-cols-3 gap-3">
+                  {(['Snowball', 'Avalanche', 'Minimum'] as const).map((strat) => (
                     <button
-                      key={strat.id}
-                      onClick={() => updateDebtConfig(strat.id as any, extraDebtContribution)}
-                      className={`p-4 rounded-2xl text-left border-0 transition-all cursor-pointer space-y-1 ${
-                        debtStrategy === strat.id
-                          ? 'bg-[#231F1E] text-white shadow-none'
-                          : 'bg-[#FBF9F5] text-[#231F1E] hover:bg-[#F5F3EF]'
+                      key={strat}
+                      onClick={() => updateDebtConfig(strat, extraDebtContribution)}
+                      className={`p-3 rounded-2xl text-xs font-bold border-0 cursor-pointer transition-all ${
+                        debtStrategy === strat
+                          ? 'bg-[#231F1E] text-white shadow-md'
+                          : 'bg-[#FBF9F5] text-[#6B6560] hover:text-[#231F1E]'
                       }`}
                     >
-                      <h4 className="font-bold text-xs">{strat.label}</h4>
-                      <p className={`text-[11px] leading-tight ${debtStrategy === strat.id ? 'text-white/70' : 'text-[#6B6560]'}`}>
-                        {strat.desc}
-                      </p>
+                      {strat}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Extra Lump Sum */}
-              <div className="p-4 rounded-2xl bg-[#FFF5F0] space-y-2 border-0">
-                <label className="block text-xs font-bold text-[#231F1E]">
-                  Extra Monthly Payment Allocation ({preferences.currency})
-                </label>
-                <input
-                  type="number"
-                  value={extraDebtContribution}
-                  onChange={(e) => updateDebtConfig(debtStrategy, parseFloat(e.target.value) || 0)}
-                  placeholder="30000"
-                  className="w-full px-4 py-2.5 bg-white rounded-xl text-xs font-mono font-bold text-[#231F1E] border-0 focus:outline-none"
-                />
-              </div>
-
-              {/* Debt Accounts */}
-              <div className="space-y-2.5 pt-2">
-                <span className="text-xs font-mono font-semibold text-[#6B6560] uppercase tracking-wider block">
-                  Active Debt Accounts ({debtAccounts.length})
-                </span>
-
-                <div className="space-y-2.5">
-                  {debtAccounts.map((d) => (
-                    <div key={d.id} className="p-4 rounded-2xl bg-[#FBF9F5] border-0 flex justify-between items-center text-xs">
-                      <div className="space-y-0.5">
-                        <h4 className="font-bold text-[#231F1E]">{d.name}</h4>
-                        <p className="text-[#6B6560] font-mono text-[11px]">
-                          Rate: {d.interestRate}% • Min Pay: {preferences.currency}{d.minimumPayment.toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div className="text-right font-mono">
-                        <span className="font-extrabold text-[#EF713F] text-sm block">
-                          {preferences.currency}{d.balance.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-[#6B6560]">Due: {d.dueDate}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
             </div>
           </motion.div>
         )}
