@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Avatar } from '../ui/Avatar';
-import { BalanceCardsCarousel } from '../ui/BalanceCardsCarousel';
+import { BalanceCardsCarousel } from '../widgets';
 import {
   Add,
   MessageText,
@@ -211,7 +211,7 @@ export const BudgetView: React.FC = () => {
                       className="p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-semibold transition-colors relative border-0 cursor-pointer"
                     >
                       <MessageText size={16} variant="Linear" className="text-[#EF713F]" />
-                      {tx.commentsCount > 0 && (
+                      {(tx.commentsCount ?? 0) > 0 && (
                         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#EF713F] text-white text-[9px] font-bold flex items-center justify-center">
                           {tx.commentsCount}
                         </span>

@@ -3,9 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
-import { BalanceCardsCarousel } from '../ui/BalanceCardsCarousel';
-import { SpeedLogBar } from '../ui/SpeedLogBar';
-import { RelationshipClock } from '../ui/RelationshipClock';
+import { BalanceCardsCarousel, SpeedLogBar, RelationshipClock } from '../widgets';
 import { MessageText, ArrowRight } from 'iconsax-react';
 
 export const DashboardView: React.FC = () => {
@@ -13,6 +11,8 @@ export const DashboardView: React.FC = () => {
     tasks,
     transactions,
     currentUser,
+    partnerUser,
+    household,
     toggleJointTaskTap,
     setCurrentView,
     openContextualThread
@@ -22,10 +22,33 @@ export const DashboardView: React.FC = () => {
 
   const pendingTasks = tasks.filter(t => !t.completed).slice(0, 5);
   const recentTransactions = transactions.slice(0, 5);
+  const isPartnerConnected = (household.members?.length || 0) >= 2 || (partnerUser && partnerUser.id !== 'usr_partner_waiting');
 
   return (
     <div className="space-y-5 pb-20 md:pb-6 select-none">
       
+      {/* Solo Partner Join Banner */}
+      {!isPartnerConnected && (
+        <div className="p-4 rounded-3xl bg-gradient-to-r from-[#F6F3FA] to-[#FAF6EB] flex flex-col sm:flex-row items-center justify-between gap-3 border-0 shadow-xs">
+          <div className="flex items-center space-x-3 text-left">
+            <div className="w-10 h-10 rounded-2xl bg-white text-[#8964B3] flex items-center justify-center shrink-0">
+              <MessageText size={20} variant="TwoTone" />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs text-[#231F1E]">Have a Partner's 6-Digit Key?</h4>
+              <p className="text-[11px] text-[#6B6560]">Enter key to pair your budget, joint tasks & chat instantly.</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setCurrentView('invite')}
+            className="w-full sm:w-auto py-2.5 px-4 rounded-2xl bg-[#8964B3] hover:bg-[#7853A2] text-white text-xs font-bold transition-all border-0 cursor-pointer shrink-0 flex items-center justify-center space-x-1"
+          >
+            <span>Enter Key to Join →</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Auto-Switching Financial Balance Cards Carousel */}
       <BalanceCardsCarousel />
 
@@ -92,51 +115,36 @@ export const DashboardView: React.FC = () => {
                     {/* Dual Partner Confirmation Check Pills */}
                     {task.isJoint ? (
                       <div className="flex items-center space-x-1 shrink-0">
-                        {/* Leslie Check Pill */}
+                        {/* Current User Check Pill */}
                         <button
-                          onClick={() => toggleJointTaskTap(task.id, 'Leslie')}
-                          disabled={currentUser.name !== 'Leslie'}
-                          className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 ${
-                            currentUser.name !== 'Leslie'
-                              ? 'opacity-40 cursor-not-allowed'
-                              : 'cursor-pointer'
-                          } ${
+                          onClick={() => toggleJointTaskTap(task.id, currentUser.name)}
+                          className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
                             task.userACompleted
                               ? 'bg-[#EF713F] text-white'
                               : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
                           }`}
-                          title={currentUser.name !== 'Leslie' ? "Only Leslie can check this side" : "Leslie's Check"}
+                          title={`${currentUser.name}'s Check`}
                         >
-                          L{task.userACompleted ? '✓' : ''}
+                          {currentUser.name.charAt(0).toUpperCase()}{task.userACompleted ? '✓' : ''}
                         </button>
 
-                        {/* Asa Check Pill */}
+                        {/* Partner Check Pill */}
                         <button
-                          onClick={() => toggleJointTaskTap(task.id, 'Asa')}
-                          disabled={currentUser.name !== 'Asa'}
-                          className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 ${
-                            currentUser.name !== 'Asa'
-                              ? 'opacity-40 cursor-not-allowed'
-                              : 'cursor-pointer'
-                          } ${
+                          onClick={() => toggleJointTaskTap(task.id, partnerUser.name)}
+                          className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
                             task.userBCompleted
                               ? 'bg-[#4A7C59] text-white'
                               : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
                           }`}
-                          title={currentUser.name !== 'Asa' ? "Only Asa can check this side" : "Asa's Check"}
+                          title={`${partnerUser.name}'s Check`}
                         >
-                          A{task.userBCompleted ? '✓' : ''}
+                          {partnerUser.name.charAt(0).toUpperCase()}{task.userBCompleted ? '✓' : ''}
                         </button>
                       </div>
                     ) : (
                       <button
-                        onClick={() => toggleJointTaskTap(task.id, 'Leslie')}
-                        disabled={currentUser.name !== 'Leslie'}
-                        className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 ${
-                          currentUser.name !== 'Leslie'
-                            ? 'opacity-40 cursor-not-allowed'
-                            : 'cursor-pointer'
-                        } ${
+                        onClick={() => toggleJointTaskTap(task.id, currentUser.name)}
+                        className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
                           task.completed
                             ? 'bg-[#4A7C59] text-white'
                             : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
@@ -161,7 +169,7 @@ export const DashboardView: React.FC = () => {
                     className="p-2 rounded-xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-semibold transition-colors shrink-0 border-0 cursor-pointer flex items-center space-x-1"
                   >
                     <MessageText size={16} variant="Linear" className="text-[#EF713F]" />
-                    {task.commentsCount > 0 && (
+                    {(task.commentsCount ?? 0) > 0 && (
                       <span className="text-[10px] font-mono font-bold text-[#EF713F]">
                         {task.commentsCount}
                       </span>

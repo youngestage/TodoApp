@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
-import { CloseCircle, TaskSquare, Wallet3, NoteText, WalletCheck, Notification } from 'iconsax-react';
+import { CloseCircle, TaskSquare, Wallet3, NoteText } from 'iconsax-react';
 
 export const NotificationsDrawer: React.FC = () => {
-  const { isNotificationsOpen, setNotificationsOpen, setCurrentView, openContextualThread, tasks, transactions, quickNotes, currentUser, partnerUser } = useStore();
+  const { isNotificationsOpen, setNotificationsOpen, setCurrentView, openContextualThread, tasks, transactions, quickNotes } = useStore();
   const [activeFilter, setActiveFilter] = useState<'All' | 'Task' | 'Budget' | 'Note'>('All');
 
   // Derive real notifications dynamically from active store data

@@ -14,37 +14,71 @@ import { OnboardingView } from './components/views/OnboardingView';
 import { InviteView } from './components/views/InviteView';
 import { SettingsView } from './components/views/SettingsView';
 
-import { QuickActionSheet } from './components/views/QuickActionSheet';
-import { SettleUpModal } from './components/views/SettleUpModal';
-import { ContextualThreadDrawer } from './components/views/ContextualThreadDrawer';
-import { QuickNoteModal } from './components/views/QuickNoteModal';
-import { SettingsModal } from './components/views/SettingsModal';
-import { NotificationsDrawer } from './components/views/NotificationsDrawer';
-import { WelcomeWoosh } from './components/ui/WelcomeWoosh';
+import { QuickActionSheet, ContextualThreadDrawer, NotificationsDrawer } from './components/drawers';
+import { SettleUpModal, QuickNoteModal, SettingsModal } from './components/modals';
+import { WelcomeWoosh } from './components/widgets';
 import { sendPushNotification } from './utils/notifications';
 import { Lock, TickCircle, ArrowRight, CloseCircle } from 'iconsax-react';
 
 export default function App() {
-  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData } = useStore();
+  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData, ensureUserHousehold } = useStore();
 
-  // Supabase Realtime: Sync partner join events live & send push notification
+  // Supabase Realtime: Sync partner join & unpair events live & send push notification
   useEffect(() => {
-    if (!household.id) return;
+    if (!household.id || household.id.startsWith('hh_')) return;
 
     const channel = supabase.channel(`realtime_household_${household.id}`)
+      .on('broadcast', { event: 'partner_left' }, async (payload: any) => {
+        const leftName = payload?.payload?.userName || 'Your partner';
+        sendPushNotification('Partner Left Space 💔', `${leftName} left the household workspace.`);
+        await fetchHouseholdData(household.id);
+      })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'profiles',
-        filter: `household_id=eq.${household.id}`
+        table: 'profiles'
       }, async (payload: any) => {
-        // Re-fetch household members & profiles
         await fetchHouseholdData(household.id);
 
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        if (payload.eventType === 'INSERT') {
           const partnerName = payload.new?.name || 'Partner';
-          sendPushNotification('Partner Joined Space! 🎉', `${partnerName} has joined your household workspace!`);
+          sendPushNotification('Partner Joined Space! 🎉', `${partnerName} connected to your workspace!`);
         }
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'households',
+        filter: `id=eq.${household.id}`
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'chat_messages',
+        filter: `household_id=eq.${household.id}`
+      }, async (payload: any) => {
+        await fetchHouseholdData(household.id);
+        if (payload.eventType === 'INSERT' && payload.new?.sender_name !== useStore.getState().currentUser.name) {
+          sendPushNotification(`New Message from ${payload.new?.sender_name}`, payload.new?.content || '');
+        }
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tasks',
+        filter: `household_id=eq.${household.id}`
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'transactions',
+        filter: `household_id=eq.${household.id}`
+      }, async () => {
+        await fetchHouseholdData(household.id);
       })
       .subscribe();
 
@@ -66,9 +100,11 @@ export default function App() {
         setSession(session);
         setOnboardingCompleted(true);
 
-        const { data: prof } = await supabase.from('profiles').select('household_id').eq('id', session.user.id).single();
+        const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).single();
         if (prof?.household_id) {
           await fetchHouseholdData(prof.household_id);
+        } else {
+          await ensureUserHousehold(session.user.id, prof?.name || session.user.email?.split('@')[0] || 'Partner A');
         }
 
         setCurrentView('dashboard');
@@ -84,9 +120,11 @@ export default function App() {
         setSession(session);
         if (event === 'SIGNED_IN') {
           setOnboardingCompleted(true);
-          const { data: prof } = await supabase.from('profiles').select('household_id').eq('id', session.user.id).single();
+          const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).single();
           if (prof?.household_id) {
             await fetchHouseholdData(prof.household_id);
+          } else {
+            await ensureUserHousehold(session.user.id, prof?.name || session.user.email?.split('@')[0] || 'Partner A');
           }
           setCurrentView('dashboard');
         }

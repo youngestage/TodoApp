@@ -32,7 +32,7 @@ export const SpeedLogBar: React.FC = () => {
         amount,
         type: 'EXPENSE',
         category: 'Expenses',
-        paidBy: currentUser.name as 'Leslie' | 'Asa',
+        paidBy: currentUser.name as any,
         account: 'Opay (Leslie)',
         isShared: true,
         date: 'Just now (Speed Log)'

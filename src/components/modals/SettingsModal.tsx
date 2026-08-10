@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
-import { CloseCircle, Setting2, UserAdd, Heart, Copy, TickCircle, Mobile } from 'iconsax-react';
+import { CloseCircle, Setting2, Copy, TickCircle, Mobile } from 'iconsax-react';
 import { Avatar } from '../ui/Avatar';
 import {
   requestNotificationPermission,
@@ -29,7 +29,7 @@ export const SettingsModal: React.FC = () => {
 
   const handleToggleNotifications = async () => {
     if (permissionState !== 'granted') {
-      const granted = await requestNotificationPermission();
+      await requestNotificationPermission();
       setPermissionState(getNotificationPermissionState());
     }
   };

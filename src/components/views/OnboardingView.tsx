@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Card } from '../ui/Card';
 import { supabase } from '../../lib/supabase';
-import { Heart, Home3, UserAdd, ArrowRight, ShieldSecurity, Lock, Sms, User, Flash, TickCircle, Copy, Key, Refresh } from 'iconsax-react';
+import { ensureAuthSession } from '../../services';
+import { WelcomeHero, LoginForm, ResetPasswordModal } from './onboarding';
+import { Home3, UserAdd, ArrowRight, Lock, Sms, TickCircle, Copy, Key, Refresh } from 'iconsax-react';
 
 export const OnboardingView: React.FC = () => {
   const { setCurrentView, setSession, fetchHouseholdData, setOnboardingCompleted } = useStore();
@@ -22,9 +24,10 @@ export const OnboardingView: React.FC = () => {
   const [codeCopied, setCodeCopied] = useState(false);
 
   // Handle Supabase Login
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
+  const handleLoginSubmit = async (userEmail: string, userPass: string) => {
+    setEmail(userEmail);
+    setPassword(userPass);
+    if (!userEmail || !userPass) {
       setErrorMsg('Please enter both email and password.');
       return;
     }
@@ -34,8 +37,8 @@ export const OnboardingView: React.FC = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+        email: userEmail,
+        password: userPass
       });
 
       if (error) {
@@ -60,9 +63,9 @@ export const OnboardingView: React.FC = () => {
   };
 
   // Handle Forgot Password Reset Email Link
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
+  const handleForgotPasswordSubmit = async (resetEmail: string) => {
+    setEmail(resetEmail);
+    if (!resetEmail) {
       setErrorMsg('Please enter your email address.');
       return;
     }
@@ -71,7 +74,7 @@ export const OnboardingView: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: `${window.location.origin}/reset-password`
       });
 
@@ -91,70 +94,67 @@ export const OnboardingView: React.FC = () => {
   const handleCreateHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name || !householdName) {
-      setErrorMsg('Please fill in all fields.');
+      setErrorMsg('Please fill in all fields to create your household space.');
       return;
     }
 
     setLoading(true);
     setErrorMsg(null);
 
-    // Permanent key bond lock: use existing stored code or lock a new 6-character key forever
-    let generatedCode = localStorage.getItem('coupletodo_permanent_invite_code');
-    if (!generatedCode) {
-      generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      localStorage.setItem('coupletodo_permanent_invite_code', generatedCode);
-    }
-
     try {
-      // 1. Insert Household record into Supabase (guaranteed key creation in DB)
-      const { data: hhData } = await supabase
-        .from('households')
-        .insert({
-          name: householdName,
-          invite_code: generatedCode
-        })
-        .select()
-        .single();
+      // 1. Guarantee authenticated session
+      const { user } = await ensureAuthSession(email, password, name);
 
-      // 2. Sign up user via Supabase Auth
-      const { data: authData } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name } }
-      });
+      // 2. Insert Household record with a fresh unique invite code
+      let freshCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      let hhData: any = null;
 
-      if (authData?.user && hhData) {
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          name,
-          household_id: hhData.id,
-          role: 'partner_a'
-        });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error } = await supabase
+          .from('households')
+          .insert({
+            name: householdName,
+            invite_code: freshCode,
+            created_by: user.id
+          })
+          .select()
+          .single();
+
+        if (data) {
+          hhData = data;
+          break;
+        }
+
+        if (error && error.code === '23505') {
+          freshCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        } else if (error) {
+          throw new Error(error.message || 'Error creating household.');
+        }
       }
 
-      // Save key in localStorage registry as fail-safe
-      const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
-      keysMap[generatedCode] = {
-        name: householdName,
-        partnerA: name,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('coupletodo_pairing_keys', JSON.stringify(keysMap));
+      if (!hhData) throw new Error('Failed to create household space. Please try again.');
 
-      setCreatedInviteCode(generatedCode);
+      // Save fresh code for this user
+      localStorage.setItem('coupletodo_permanent_invite_code', freshCode);
+
+      // 3. Upsert profile with household_id
+      const { error: profErr } = await supabase.from('profiles').upsert({
+        id: user.id,
+        name,
+        household_id: hhData.id,
+        role: 'partner_a'
+      });
+
+      if (profErr) throw new Error(profErr.message || 'Error saving profile.');
+
+      // 4. Fetch updated household state from DB
+      await fetchHouseholdData(hhData.id);
+
+      setCreatedInviteCode(freshCode);
 
     } catch (err: any) {
-      console.warn('Supabase household insert fallback:', err);
-      // Fail-safe fallback key generation
-      const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
-      keysMap[generatedCode] = {
-        name: householdName,
-        partnerA: name,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('coupletodo_pairing_keys', JSON.stringify(keysMap));
-
-      setCreatedInviteCode(generatedCode);
+      console.error('Household creation error:', err);
+      setErrorMsg(err.message || 'Error creating household.');
     } finally {
       setLoading(false);
     }
@@ -174,119 +174,39 @@ export const OnboardingView: React.FC = () => {
     const targetCode = inviteCode.toUpperCase().trim();
 
     try {
-      let matchedHouseholdName = 'Our Household';
-      let matchedPartnerA = 'Partner A';
-      let targetHouseholdId = `hh-${targetCode}`;
+      // 1. Look up household in Supabase by invite code
+      const { data: hhData } = await supabase
+        .from('households')
+        .select('*')
+        .ilike('invite_code', targetCode)
+        .maybeSingle();
 
-      // 1. Check Supabase households table (case insensitive match)
-      try {
-        const { data: hhData } = await supabase
-          .from('households')
-          .select('*')
-          .eq('invite_code', targetCode)
-          .maybeSingle();
-
-        if (hhData) {
-          matchedHouseholdName = hhData.name;
-          targetHouseholdId = hhData.id;
-        }
-      } catch (e) {
-        console.warn('Supabase lookup warning, fallback to pairing:', e);
+      if (!hhData) {
+        throw new Error(`Household code "${targetCode}" not found. Please verify the 6-character key shared by your partner.`);
       }
 
-      if (!targetHouseholdId || targetHouseholdId.startsWith('hh-')) {
-        // 2. Check localStorage pairing registry fallback
-        const keysMap = JSON.parse(localStorage.getItem('coupletodo_pairing_keys') || '{}');
-        const foundLocal = keysMap[targetCode];
+      // 2. Guarantee authenticated session for Partner B
+      const { user } = await ensureAuthSession(email, password, name);
 
-        if (foundLocal) {
-          matchedHouseholdName = foundLocal.name;
-          matchedPartnerA = foundLocal.partnerA || 'Partner A';
-        } else {
-          // If code not found yet in DB, create/pair household dynamically so partners are never blocked!
-          const { data: newHh } = await supabase
-            .from('households')
-            .insert({
-              name: `${name}'s Joint Space`,
-              invite_code: targetCode
-            })
-            .select()
-            .single();
-
-          if (newHh) {
-            targetHouseholdId = newHh.id;
-            matchedHouseholdName = newHh.name;
-          }
-        }
-      }
-
-      // Try Supabase auth
-      const { data: authData } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name } }
+      // 3. Link Partner B profile to Partner A's household ID as partner_b
+      const { error: profErr } = await supabase.from('profiles').upsert({
+        id: user.id,
+        name,
+        household_id: hhData.id,
+        role: 'partner_b'
       });
 
-      if (authData?.user && targetHouseholdId) {
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          name,
-          household_id: targetHouseholdId,
-          role: 'partner_b'
-        });
-      }
+      if (profErr) throw new Error(profErr.message || 'Error linking profile to household.');
 
-      // Update store to 2 Members paired!
-      useStore.setState((state) => ({
-        currentUser: {
-          id: authData?.user?.id || 'usr_partner_b',
-          name: name || 'Partner B',
-          avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + (name || 'Partner B'),
-          isOnline: true,
-          role: 'partner_b'
-        },
-        partnerUser: {
-          id: 'usr_partner_a',
-          name: matchedPartnerA,
-          avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + matchedPartnerA,
-          isOnline: true,
-          role: 'partner_a'
-        },
-        household: {
-          id: targetHouseholdId,
-          name: matchedHouseholdName,
-          inviteCode: targetCode,
-          maxMembers: 2,
-          members: [
-            {
-              id: 'usr_partner_a',
-              name: matchedPartnerA,
-              avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + matchedPartnerA,
-              isOnline: true,
-              role: 'partner_a'
-            },
-            {
-              id: authData?.user?.id || 'usr_partner_b',
-              name: name || 'Partner B',
-              avatarUrl: 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + (name || 'Partner B'),
-              isOnline: true,
-              role: 'partner_b'
-            }
-          ],
-          settleBalance: {
-            debtor: name || 'Partner B',
-            creditor: matchedPartnerA,
-            amount: 0,
-            currency: '₦'
-          }
-        }
-      }));
+      // 4. Fetch synced household data (both Partner A and Partner B profiles)
+      await fetchHouseholdData(hhData.id);
 
       setOnboardingCompleted(true);
       setCurrentView('dashboard');
 
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error pairing with key.');
+      console.error('Join household error:', err);
+      setErrorMsg(err.message || 'Error joining household with key.');
     } finally {
       setLoading(false);
     }
@@ -299,29 +219,11 @@ export const OnboardingView: React.FC = () => {
     setTimeout(() => setCodeCopied(false), 2500);
   };
 
-  const handleContinueToDashboard = () => {
-    useStore.setState((state) => ({
-      currentUser: {
-        id: state.currentUser.id || 'usr_partner_a',
-        name: name || 'Partner A',
-        avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + (name || 'Partner A'),
-        isOnline: true,
-        role: 'partner_a'
-      },
-      household: {
-        ...state.household,
-        name: householdName || 'My Household',
-        inviteCode: createdInviteCode || 'X7K2P9',
-        members: [{
-          id: state.currentUser.id || 'usr_partner_a',
-          name: name || 'Partner A',
-          avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=' + (name || 'Partner A'),
-          isOnline: true,
-          role: 'partner_a'
-        }]
-      }
-    }));
-
+  const handleContinueToDashboard = async () => {
+    const hhId = useStore.getState().household.id;
+    if (hhId && !hhId.startsWith('hh_')) {
+      await fetchHouseholdData(hhId);
+    }
     setOnboardingCompleted(true);
     setCurrentView('dashboard');
   };
@@ -415,172 +317,38 @@ export const OnboardingView: React.FC = () => {
 
           {/* LOGIN FORM MODE */}
           {authMode === 'login' && (
-            <motion.form
+            <motion.div
               key="login-form"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              onSubmit={handleLogin}
-              className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
             >
-              <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
-                <h3 className="font-bold text-xl text-[#231F1E]">Log In to Household</h3>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('welcome')}
-                  className="text-xs font-semibold text-[#EF713F] border-0 bg-transparent cursor-pointer"
-                >
-                  ← Back
-                </button>
-              </div>
-
-              {errorMsg && (
-                <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
-                  ⚠️ {errorMsg}
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">Email Address</label>
-                  <div className="relative flex items-center">
-                    <Sms size={18} variant="Linear" className="absolute left-3.5 text-[#6B6560]" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@coupletodo.app"
-                      className="w-full pl-10 pr-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase">Password</label>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode('forgot_password')}
-                      className="text-xs font-semibold text-[#EF713F] hover:underline border-0 bg-transparent cursor-pointer"
-                    >
-                      Forgot Password?
-                    </button>
-                  </div>
-                  <div className="relative flex items-center">
-                    <Lock size={18} variant="Linear" className="absolute left-3.5 text-[#6B6560]" />
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full pl-10 pr-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
-              >
-                {loading ? (
-                  <span>Signing In...</span>
-                ) : (
-                  <>
-                    <span>Log In to Account</span>
-                    <ArrowRight size={18} variant="Linear" />
-                  </>
-                )}
-              </button>
-            </motion.form>
+              <LoginForm
+                onSubmit={handleLoginSubmit}
+                onBack={() => setAuthMode('welcome')}
+                onForgotPassword={() => setAuthMode('forgot_password')}
+                loading={loading}
+                errorMsg={errorMsg}
+              />
+            </motion.div>
           )}
 
-          {/* FORGOT PASSWORD FORM MODE (EMAIL RESET LINK ONLY) */}
+          {/* FORGOT PASSWORD FORM MODE */}
           {authMode === 'forgot_password' && (
-            <motion.form
+            <motion.div
               key="forgot-form"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              onSubmit={handleForgotPassword}
-              className="bg-white p-6 sm:p-8 rounded-3xl space-y-4 border-0 shadow-none"
             >
-              <div className="flex items-center justify-between border-b border-[#F5F3EF] pb-3">
-                <h3 className="font-bold text-xl text-[#231F1E]">Reset Password</h3>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('login')}
-                  className="text-xs font-semibold text-[#EF713F] border-0 bg-transparent cursor-pointer"
-                >
-                  ← Back to Login
-                </button>
-              </div>
-
-              {resetSent ? (
-                <div className="p-6 rounded-3xl bg-[#EBF3ED] text-center space-y-3 border-0">
-                  <TickCircle size={40} variant="Bold" className="text-[#4A7C59] mx-auto" />
-                  <h4 className="font-bold text-lg text-[#231F1E]">Reset Link Dispatched! ✉️</h4>
-                  <p className="text-xs text-[#6B6560] leading-relaxed">
-                    We sent a password reset link to <span className="font-bold text-[#231F1E]">{email}</span>. Click the link inside your email inbox to set a new password!
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('login')}
-                    className="w-full mt-2 py-3 rounded-2xl bg-[#231F1E] hover:bg-black text-white font-bold text-xs transition-all border-0 cursor-pointer"
-                  >
-                    Return to Login
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {errorMsg && (
-                    <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
-                      ⚠️ {errorMsg}
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <p className="text-xs text-[#6B6560]">
-                      Enter your account email address and we'll send a password reset link directly to your inbox.
-                    </p>
-
-                    <div>
-                      <label className="block text-xs font-mono font-semibold text-[#6B6560] uppercase mb-1">Registered Email</label>
-                      <div className="relative flex items-center">
-                        <Sms size={18} variant="Linear" className="absolute left-3.5 text-[#6B6560]" />
-                        <input
-                          type="email"
-                          required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="you@coupletodo.app"
-                          className="w-full pl-10 pr-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 rounded-2xl bg-[#EF713F] hover:bg-[#D95220] text-white font-bold text-sm transition-all border-0 cursor-pointer shadow-md flex items-center justify-center space-x-2"
-                  >
-                    {loading ? (
-                      <span>Sending Link...</span>
-                    ) : (
-                      <>
-                        <Refresh size={18} variant="Linear" />
-                        <span>Send Password Reset Link to Email</span>
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
-            </motion.form>
+              <ResetPasswordModal
+                onSubmit={handleForgotPasswordSubmit}
+                onBack={() => setAuthMode('login')}
+                loading={loading}
+                errorMsg={errorMsg}
+                resetSent={resetSent}
+              />
+            </motion.div>
           )}
 
           {/* KEY GENERATION SCREEN / HOUSEHOLD CREATION */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { Heart, Clock, Edit2, Calendar, CloseCircle, TickCircle } from 'iconsax-react';
-import { Avatar } from './Avatar';
+import { Heart, Clock, Edit2, CloseCircle, TickCircle } from 'iconsax-react';
+import { Avatar } from '../ui/Avatar';
 import { supabase } from '../../lib/supabase';
 
 export const RelationshipClock: React.FC = () => {

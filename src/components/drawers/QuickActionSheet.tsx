@@ -329,7 +329,7 @@ export const QuickActionSheet: React.FC = () => {
                   <textarea
                     rows={3}
                     required
-                    placeholder="Send a quick note or update to Asa..."
+                    placeholder="Send a quick note or update to partner..."
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"

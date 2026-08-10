@@ -124,41 +124,31 @@ export const TasksView: React.FC = () => {
                   
                   {/* Dual Partner Check Pills */}
                   <div className="flex items-center space-x-1 shrink-0 pt-0.5">
-                    {/* Leslie Check Pill */}
+                    {/* Current User Check Pill */}
                     <button
-                      onClick={() => toggleJointTaskTap(task.id, 'Leslie')}
-                      disabled={currentUser.name !== 'Leslie'}
-                      className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 ${
-                        currentUser.name !== 'Leslie'
-                          ? 'opacity-40 cursor-not-allowed'
-                          : 'cursor-pointer'
-                      } ${
+                      onClick={() => toggleJointTaskTap(task.id, currentUser.name)}
+                      className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
                         task.userACompleted
                           ? 'bg-[#EF713F] text-white'
                           : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
                       }`}
-                      title={currentUser.name !== 'Leslie' ? "Only Leslie can check this side" : "Leslie's Check"}
+                      title={`${currentUser.name}'s Check`}
                     >
-                      L{task.userACompleted ? '✓' : ''}
+                      {currentUser.name.charAt(0).toUpperCase()}{task.userACompleted ? '✓' : ''}
                     </button>
 
-                    {/* Asa Check Pill */}
+                    {/* Partner Check Pill */}
                     {task.isJoint && (
                       <button
-                        onClick={() => toggleJointTaskTap(task.id, 'Asa')}
-                        disabled={currentUser.name !== 'Asa'}
-                        className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 ${
-                          currentUser.name !== 'Asa'
-                            ? 'opacity-40 cursor-not-allowed'
-                            : 'cursor-pointer'
-                        } ${
+                        onClick={() => toggleJointTaskTap(task.id, partnerUser.name)}
+                        className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
                           task.userBCompleted
                             ? 'bg-[#4A7C59] text-white'
                             : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
                         }`}
-                        title={currentUser.name !== 'Asa' ? "Only Asa can check this side" : "Asa's Check"}
+                        title={`${partnerUser.name}'s Check`}
                       >
-                        A{task.userBCompleted ? '✓' : ''}
+                        {partnerUser.name.charAt(0).toUpperCase()}{task.userBCompleted ? '✓' : ''}
                       </button>
                     )}
                   </div>
@@ -214,7 +204,7 @@ export const TasksView: React.FC = () => {
                   >
                     <MessageText size={16} variant="Linear" className="text-[#EF713F]" />
                     <span className="hidden sm:inline">Discussion</span>
-                    {task.commentsCount > 0 && (
+                    {(task.commentsCount ?? 0) > 0 && (
                       <span className="w-4 h-4 rounded-full bg-[#EF713F] text-white text-[9px] font-bold flex items-center justify-center">
                         {task.commentsCount}
                       </span>

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { CloseCircle, MessageText, Send2 } from 'iconsax-react';
-import { Avatar } from '../ui/Avatar';
 
 export const ContextualThreadDrawer: React.FC = () => {
   const {
