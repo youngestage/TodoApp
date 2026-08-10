@@ -10,9 +10,12 @@ export async function sendChatMessageToDB(
 ) {
   if (!householdId || householdId.startsWith('hh_')) return;
 
+  const { data: authData } = await supabase.auth.getUser();
+  const actualSenderId = authData?.user?.id || (senderId.startsWith('usr_') ? null : senderId);
+
   const { error } = await supabase.from('chat_messages').insert({
     household_id: householdId,
-    sender_id: senderId.startsWith('usr_') ? null : senderId,
+    sender_id: actualSenderId,
     sender_name: senderName,
     content,
     attachment_type: attachment?.type || null,
@@ -35,9 +38,12 @@ export async function sendBuzzToDB(
 
   const buzzText = `⚡ Buzzed ${partnerName}`;
 
+  const { data: authData } = await supabase.auth.getUser();
+  const actualSenderId = authData?.user?.id || (senderId.startsWith('usr_') ? null : senderId);
+
   const { error } = await supabase.from('chat_messages').insert({
     household_id: householdId,
-    sender_id: senderId.startsWith('usr_') ? null : senderId,
+    sender_id: actualSenderId,
     sender_name: senderName,
     content: buzzText
   });

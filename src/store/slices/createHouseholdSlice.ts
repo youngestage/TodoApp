@@ -49,10 +49,14 @@ export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], Househol
     const sessionUserId = stateAny.session?.user?.id || stateAny.currentUser?.id;
     const data = await fetchHouseholdDataFromDB(householdId, sessionUserId);
     if (data) {
-      set((state) => ({
+      set((state: any) => ({
         household: data.household,
         partnerUser: data.partnerUser,
-        ...(data.currentUser ? { currentUser: data.currentUser } : {})
+        ...(data.currentUser ? { currentUser: data.currentUser } : {}),
+        tasks: data.tasks.length > 0 ? data.tasks : state.tasks,
+        transactions: data.transactions.length > 0 ? data.transactions : state.transactions,
+        chatMessages: data.chatMessages.length > 0 ? data.chatMessages : state.chatMessages,
+        quickNotes: data.quickNotes.length > 0 ? data.quickNotes : state.quickNotes
       }));
     }
   },

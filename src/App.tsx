@@ -59,9 +59,32 @@ export default function App() {
         table: 'chat_messages',
         filter: `household_id=eq.${household.id}`
       }, async (payload: any) => {
-        await fetchHouseholdData(household.id);
-        if (payload.eventType === 'INSERT' && payload.new?.sender_name !== useStore.getState().currentUser.name) {
-          sendPushNotification(`New Message from ${payload.new?.sender_name}`, payload.new?.content || '');
+        if (payload.eventType === 'INSERT' && payload.new) {
+          const newMsg = payload.new;
+          const currentStore = useStore.getState();
+          
+          if (!currentStore.chatMessages.some(m => m.id === newMsg.id)) {
+            const formattedMsg = {
+              id: newMsg.id,
+              senderName: newMsg.sender_name,
+              content: newMsg.content,
+              timestamp: new Date(newMsg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              attachment: newMsg.attachment_type ? {
+                type: newMsg.attachment_type,
+                title: newMsg.attachment_title || '',
+                amount: newMsg.attachment_amount ? Number(newMsg.attachment_amount) : undefined,
+                id: newMsg.attachment_ref_id || newMsg.id
+              } : undefined
+            };
+
+            useStore.setState({ chatMessages: [...currentStore.chatMessages, formattedMsg] });
+          }
+
+          if (newMsg.sender_name !== currentStore.currentUser.name) {
+            sendPushNotification(`New Message from ${newMsg.sender_name}`, newMsg.content || '');
+          }
+        } else {
+          await fetchHouseholdData(household.id);
         }
       })
       .on('postgres_changes', {
