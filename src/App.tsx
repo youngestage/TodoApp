@@ -121,16 +121,16 @@ export default function App() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setSession(session);
-        setOnboardingCompleted(true);
 
-        const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).single();
+        const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).maybeSingle();
         if (prof?.household_id) {
           await fetchHouseholdData(prof.household_id);
+          setOnboardingCompleted(true);
+          setCurrentView('dashboard');
         } else {
-          await ensureUserHousehold(session.user.id, prof?.name || session.user.email?.split('@')[0] || 'Partner A');
+          setOnboardingCompleted(false);
+          setCurrentView('onboarding');
         }
-
-        setCurrentView('dashboard');
       }
     });
 
@@ -142,14 +142,15 @@ export default function App() {
       if (session) {
         setSession(session);
         if (event === 'SIGNED_IN') {
-          setOnboardingCompleted(true);
-          const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).single();
+          const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).maybeSingle();
           if (prof?.household_id) {
             await fetchHouseholdData(prof.household_id);
+            setOnboardingCompleted(true);
+            setCurrentView('dashboard');
           } else {
-            await ensureUserHousehold(session.user.id, prof?.name || session.user.email?.split('@')[0] || 'Partner A');
+            setOnboardingCompleted(false);
+            setCurrentView('onboarding');
           }
-          setCurrentView('dashboard');
         }
       }
       // When user clicks Password Reset Link in Email
