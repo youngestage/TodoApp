@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
-import { Card } from '../ui/Card';
 import { Avatar } from '../ui/Avatar';
 import { BalanceCardsCarousel, SpeedLogBar, RelationshipClock } from '../widgets';
 import { MessageText, ArrowRight } from 'iconsax-react';

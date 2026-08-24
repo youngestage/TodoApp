@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useStore } from '../../../store/useStore';
 import { Avatar } from '../../ui/Avatar';
 import { sendPushNotification, getNotificationPermissionState, requestNotificationPermission } from '../../../utils/notifications';
-import { Camera, Mobile, Notification, TickCircle, Copy, Danger } from 'iconsax-react';
+import { Camera, Mobile, TickCircle, Copy, Danger } from 'iconsax-react';
 
 interface ProfileSettingsCardProps {
   onOpenDeleteModal: () => void;

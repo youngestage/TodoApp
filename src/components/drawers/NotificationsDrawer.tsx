@@ -44,7 +44,7 @@ export const NotificationsDrawer: React.FC = () => {
     return n.type === activeFilter;
   });
 
-  const handleNotificationClick = (item: typeof realNotifications[0]) => {
+  const handleNotificationClick = (item: any) => {
     setNotificationsOpen(false);
     if (item.threadItem) {
       openContextualThread(item.threadItem);

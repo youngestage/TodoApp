@@ -56,6 +56,10 @@ export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], Househol
         tasks: data.tasks.length > 0 ? data.tasks : state.tasks,
         folders: data.folders && data.folders.length > 0 ? data.folders : state.folders || [],
         transactions: data.transactions.length > 0 ? data.transactions : state.transactions,
+        recurringBills: data.recurringBills && data.recurringBills.length > 0 ? data.recurringBills : state.recurringBills,
+        debtAccounts: data.debtAccounts && data.debtAccounts.length > 0 ? data.debtAccounts : state.debtAccounts,
+        savingsGoals: data.savingsGoals && data.savingsGoals.length > 0 ? data.savingsGoals : state.savingsGoals,
+        incomeStreams: data.incomeStreams && data.incomeStreams.length > 0 ? data.incomeStreams : state.incomeStreams,
         chatMessages: data.chatMessages.length > 0 ? data.chatMessages : state.chatMessages,
         quickNotes: data.quickNotes.length > 0 ? data.quickNotes : state.quickNotes
       }));

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import {
@@ -78,11 +79,7 @@ export const TasksView: React.FC = () => {
     }
   };
 
-  const getUserAvatar = (name: string) => {
-    if (name === currentUser?.name) return currentUser?.avatarUrl;
-    if (name === partnerUser?.name) return partnerUser?.avatarUrl;
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${name}`;
-  };
+  const getUserAvatar = (name: string) => getUserAvatarUrl(name, currentUser, partnerUser);
 
   return (
     <div className="space-y-6 pb-20 md:pb-6 select-none">
@@ -109,12 +106,16 @@ export const TasksView: React.FC = () => {
 
       {/* 2. Simplified Filter Switcher */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center space-x-1.5 bg-white p-1 rounded-2xl border-0 overflow-x-auto">
+        <div className="flex items-center space-x-1.5 bg-white p-1 rounded-2xl border-0 overflow-x-auto no-scrollbar max-w-full">
           {(['All', 'Mine', 'Partner', 'Joint'] as const).map((tab) => {
+            const partnerDisplayName = partnerUser.name.startsWith('Waiting') 
+              ? 'Partner' 
+              : `${partnerUser.name.split(' ')[0]}'s`;
+
             const labelMap = {
               All: 'All',
               Mine: 'Mine',
-              Partner: `${partnerUser.name}'s`,
+              Partner: partnerDisplayName,
               Joint: 'Joint',
             };
 
@@ -122,7 +123,7 @@ export const TasksView: React.FC = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer ${
                   activeTab === tab
                     ? 'bg-[#231F1E] text-white'
                     : 'text-[#6B6560] hover:text-[#231F1E] bg-transparent'
@@ -160,40 +161,58 @@ export const TasksView: React.FC = () => {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                className="bg-white rounded-3xl p-5 border-0 shadow-none space-y-3 hover:bg-white/90 transition-all overflow-hidden"
+                className="bg-white rounded-3xl p-4 sm:p-5 border-0 shadow-none space-y-3 hover:bg-white/90 transition-all overflow-hidden"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   
-                  {/* Left: Dual Partner Check Pills & Title */}
+                  {/* Left: Dual Partner Check Avatar Pills & Title */}
                   <div className="flex items-start space-x-3 min-w-0 flex-1">
                     
-                    {/* Dual Partner Check Pills */}
-                    <div className="flex items-center space-x-1 shrink-0 pt-0.5">
-                      {/* Current User Check Pill */}
+                    {/* Dual Partner Avatar Check Pills */}
+                    <div className="flex items-center space-x-1.5 shrink-0 pt-0.5">
+                      {/* Current User Check Avatar */}
                       <button
                         onClick={() => toggleJointTaskTap(task.id, currentUser.name)}
-                        className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
+                        className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 cursor-pointer p-0.5 overflow-hidden ${
                           task.userACompleted
-                            ? 'bg-[#EF713F] text-white'
-                            : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                            ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
+                            : 'border-gray-200 opacity-60 hover:opacity-100'
                         }`}
                         title={`${currentUser.name}'s Check`}
                       >
-                        {currentUser.name.charAt(0).toUpperCase()}{task.userACompleted ? '✓' : ''}
+                        <img 
+                          src={getUserAvatar(currentUser.name)} 
+                          alt={currentUser.name} 
+                          className="w-full h-full rounded-full object-cover" 
+                        />
+                        {task.userACompleted && (
+                          <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                            ✓
+                          </div>
+                        )}
                       </button>
 
-                      {/* Partner Check Pill */}
+                      {/* Partner Check Avatar */}
                       {task.isJoint && (
                         <button
                           onClick={() => toggleJointTaskTap(task.id, partnerUser.name)}
-                          className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
+                          className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 cursor-pointer p-0.5 overflow-hidden ${
                             task.userBCompleted
-                              ? 'bg-[#4A7C59] text-white'
-                              : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                              ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
+                              : 'border-gray-200 opacity-60 hover:opacity-100'
                           }`}
                           title={`${partnerUser.name}'s Check`}
                         >
-                          {partnerUser.name.charAt(0).toUpperCase()}{task.userBCompleted ? '✓' : ''}
+                          <img 
+                            src={getUserAvatar(partnerUser.name)} 
+                            alt={partnerUser.name} 
+                            className="w-full h-full rounded-full object-cover" 
+                          />
+                          {task.userBCompleted && (
+                            <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                              ✓
+                            </div>
+                          )}
                         </button>
                       )}
                     </div>
@@ -240,9 +259,9 @@ export const TasksView: React.FC = () => {
                   </div>
 
                   {/* Right: Actions, Expenses & Discussion */}
-                  <div className="flex items-center space-x-3 shrink-0 self-end sm:self-center border-t sm:border-t-0 pt-2 sm:pt-0 w-full sm:w-auto justify-between sm:justify-end">
+                  <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center pt-2 sm:pt-0 border-t border-gray-100 sm:border-t-0 w-full sm:w-auto justify-end">
                     {task.linkedExpense && (
-                      <div className="text-right font-mono">
+                      <div className="text-right font-mono mr-auto sm:mr-0">
                         <span className="text-[10px] text-[#6B6560] block">Auto-Logs</span>
                         <span className="text-xs font-bold text-[#EF713F]">
                           ₦{task.linkedExpense.amount.toLocaleString()}
@@ -252,10 +271,11 @@ export const TasksView: React.FC = () => {
 
                     <button
                       onClick={() => openContextualThread({ type: 'TASK', id: task.id, title: task.title })}
-                      className="p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-semibold transition-colors relative border-0 cursor-pointer flex items-center space-x-1.5"
+                      className="p-2 sm:p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-semibold transition-colors relative border-0 cursor-pointer flex items-center space-x-1.5"
+                      title="Discussion"
                     >
                       <MessageText size={16} variant="Linear" className="text-[#EF713F]" />
-                      <span className="hidden sm:inline">Discussion</span>
+                      <span className="text-xs">Discussion</span>
                       {(task.commentsCount ?? 0) > 0 && (
                         <span className="w-4 h-4 rounded-full bg-[#EF713F] text-white text-[9px] font-bold flex items-center justify-center">
                           {task.commentsCount}
@@ -265,14 +285,15 @@ export const TasksView: React.FC = () => {
 
                     <button
                       onClick={() => toggleTaskExpanded(task.id)}
-                      className="p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-[#F5F3EF] text-[#6B6560] text-xs font-semibold transition-colors border-0 cursor-pointer flex items-center space-x-1"
+                      className="p-2 sm:p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-[#F5F3EF] text-[#6B6560] text-xs font-semibold transition-colors border-0 cursor-pointer flex items-center space-x-1"
+                      title="Expand Sub-tasks"
                     >
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                     </button>
 
                     <button
                       onClick={() => deleteTask(task.id)}
-                      className="p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors border-0 cursor-pointer"
+                      className="p-2 sm:p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors border-0 cursor-pointer"
                       title="Delete Task"
                     >
                       <Trash2 className="w-4 h-4" />

@@ -6,10 +6,10 @@ import { ViewMode } from '../../types';
 export const Sidebar: React.FC = () => {
   const { currentView, setCurrentView, household, setQuickActionOpen } = useStore();
 
-  const navItems: { id: ViewMode; label: string; icon: React.FC<{ size?: number; variant?: 'Bold' | 'Broken' | 'Linear' | 'TwoTone'; className?: string }> }[] = [
+  const navItems: { id: ViewMode; label: string; icon: React.ComponentType<any> }[] = [
     { id: 'dashboard', label: 'Home Dashboard', icon: Home },
     { id: 'tasks', label: 'Joint Tasks', icon: TaskSquare },
-    { id: 'budget', label: 'Budget & Bills', icon: WalletMoney },
+    { id: 'budget', label: 'Finances', icon: WalletMoney },
     { id: 'chat', label: 'Contextual Chat', icon: MessageText },
     { id: 'settings', label: 'App Settings', icon: Setting2 },
   ];

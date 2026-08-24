@@ -21,7 +21,7 @@ import { sendPushNotification } from './utils/notifications';
 import { Lock, TickCircle, ArrowRight, CloseCircle } from 'iconsax-react';
 
 export default function App() {
-  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData, ensureUserHousehold } = useStore();
+  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData } = useStore();
 
   // Supabase Realtime: Sync partner join & unpair events live & send push notification
   useEffect(() => {

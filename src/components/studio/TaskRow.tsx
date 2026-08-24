@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle2, Circle, MoreVertical, Plus, Trash2, Calendar } from 'lucide-react';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
+import { ChevronDown, ChevronRight, CheckCircle2, Circle, Plus, Trash2, Calendar } from 'lucide-react';
 import { Task } from '../../types';
 import { useStore } from '../../store/useStore';
 
@@ -46,11 +47,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({ task }) => {
     }
   };
 
-  const getUserAvatar = (name: string) => {
-    if (name === currentUser?.name) return currentUser?.avatarUrl;
-    if (name === partnerUser?.name) return partnerUser?.avatarUrl;
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${name}`;
-  };
+  const getUserAvatar = (name: string) => getUserAvatarUrl(name, currentUser, partnerUser);
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border border-gray-100 mb-3 overflow-hidden transition-all duration-200 ${task.completed ? 'opacity-70' : ''}`}>
@@ -73,7 +70,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({ task }) => {
             {task.title}
           </span>
           <div className="flex items-center mt-1 space-x-2">
-            {task.priority && task.priority !== 'none' && (
+            {task.priority && (task.priority as string) !== 'none' && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(task.priority)}`}>
                 {task.priority}
               </span>

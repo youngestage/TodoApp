@@ -64,12 +64,12 @@ export const MobileNav: React.FC = () => {
   const navItems: {
     id: ViewMode;
     label: string;
-    icon: React.FC<{ size?: number; variant?: 'Bold' | 'Broken' | 'Linear' | 'TwoTone'; className?: string }>;
+    icon: React.ComponentType<any>;
     badge?: number;
   }[] = [
     { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'tasks', label: 'Tasks', icon: TaskSquare, badge: pendingTasksCount },
-    { id: 'budget', label: 'Budget', icon: WalletMoney },
+    { id: 'budget', label: 'Finances', icon: WalletMoney },
     { id: 'chat', label: 'Chat', icon: MessageText, badge: chatMessages.length > 0 ? chatMessages.length : undefined },
   ];
 

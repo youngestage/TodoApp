@@ -6,7 +6,7 @@ import { Task } from '../../types';
 export const QuickCaptureFab: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
-  const [priority, setPriority] = useState<Task['priority']>('none');
+  const [priority, setPriority] = useState<'High' | 'Medium' | 'Low' | 'none'>('none');
   const addTask = useStore(state => state.addTask);
 
   const handleSubmit = (e: React.FormEvent) => {

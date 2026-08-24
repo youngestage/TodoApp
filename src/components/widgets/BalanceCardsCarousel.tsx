@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import {
   Eye,
   EyeSlash,
-  ImportSquare,
   ExportSquare,
-  MagicStar,
   Wallet3,
+  MoneySend,
   ArrowRight
 } from 'iconsax-react';
 
 export const BalanceCardsCarousel: React.FC = () => {
   const {
     transactions,
+    incomeStreams,
     household,
     hideBalances,
     toggleHideBalances,
@@ -25,10 +25,20 @@ export const BalanceCardsCarousel: React.FC = () => {
 
   const calculateBalances = () => {
     let totalSpent = 0;
+    let totalIncomeFromStreams = 0;
 
-    transactions.forEach((tx) => {
-      if (tx.type === 'EXPENSE') {
-        totalSpent += tx.amount;
+    const expenseTransactions = (transactions || []).filter((tx) => {
+      const typeStr = String(tx.type || 'EXPENSE').toUpperCase();
+      return typeStr === 'EXPENSE';
+    });
+
+    expenseTransactions.forEach((tx) => {
+      totalSpent += Number(tx.amount || 0);
+    });
+
+    (incomeStreams || []).forEach((stream) => {
+      if (stream.status !== 'PAUSED') {
+        totalIncomeFromStreams += Number(stream.amount || 0);
       }
     });
 
@@ -37,6 +47,8 @@ export const BalanceCardsCarousel: React.FC = () => {
 
     return {
       totalSpent: hideBalances ? '••••' : `₦${totalSpent.toLocaleString()}`,
+      totalIncome: hideBalances ? '••••' : `₦${totalIncomeFromStreams.toLocaleString()}`,
+      expenseCount: expenseTransactions.length,
       settleDisplayAmount,
       debtor: netSettle.debtor,
       creditor: netSettle.creditor,
@@ -48,9 +60,21 @@ export const BalanceCardsCarousel: React.FC = () => {
 
   const cards = [
     {
+      id: 'total-income',
+      title: 'TOTAL HOUSEHOLD INCOME',
+      subtitle: `${incomeStreams ? incomeStreams.length : 0} active income streams`,
+      value: balances.totalIncome,
+      badge: 'Combined Monthly Income',
+      theme: 'emerald',
+      bgClass: 'bg-white',
+      accentColor: '#4A7C59',
+      actionLabel: null,
+      icon: MoneySend
+    },
+    {
       id: 'total-spent',
       title: 'TOTAL SPENT',
-      subtitle: `${transactions.length} shared transactions`,
+      subtitle: `${balances.expenseCount} logged expenses`,
       value: balances.totalSpent,
       badge: 'Joint Expenses',
       theme: 'orange',

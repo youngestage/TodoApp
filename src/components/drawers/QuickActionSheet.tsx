@@ -201,10 +201,16 @@ export const QuickActionSheet: React.FC = () => {
                       onChange={(e) => setExpenseCategory(e.target.value as any)}
                       className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
                     >
-                      <option value="Expenses">Expenses</option>
-                      <option value="Bills">Bills</option>
-                      <option value="Savings">Savings</option>
-                      <option value="Investments">Investments</option>
+                      <option value="Groceries & Market">Groceries & Market</option>
+                      <option value="Dining & Takeout">Dining & Takeout</option>
+                      <option value="Fuel & Transport">Fuel & Transport</option>
+                      <option value="Shopping & Fashion">Shopping & Fashion</option>
+                      <option value="Home Care & Maintenance">Home Care & Maintenance</option>
+                      <option value="Entertainment & Leisure">Entertainment & Leisure</option>
+                      <option value="Health & Wellness">Health & Wellness</option>
+                      <option value="Family & Kids">Family & Kids</option>
+                      <option value="Personal Care">Personal Care</option>
+                      <option value="Other Expense">Other Expense</option>
                     </select>
                   </div>
 

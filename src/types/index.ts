@@ -1,4 +1,4 @@
-export type ViewMode = 'dashboard' | 'tasks' | 'budget' | 'chat' | 'onboarding' | 'invite' | 'settings';
+export type ViewMode = 'dashboard' | 'tasks' | 'budget' | 'finances' | 'chat' | 'onboarding' | 'invite' | 'settings';
 
 export interface User {
   id: string;
@@ -68,16 +68,42 @@ export interface Transaction {
   commentsCount?: number;
 }
 
+export type BillFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+export type BillSplitType = 'equal' | 'percentage' | 'exact' | 'shares';
+export type BillPaymentMethod = 'card' | 'bank_transfer' | 'cash' | 'apple_pay' | 'upi' | 'other';
+export type BillStatus = 'UPCOMING' | 'DUE' | 'OVERDUE' | 'PAID' | 'PAUSED';
+
 export interface RecurringBill {
   id: string;
+  householdId?: string;
   title: string;
-  amount: number;
-  dueDate: string;
-  dueDayNumber?: number;
   category: BudgetCategoryType;
-  status: 'PAID' | 'DUE' | 'UPCOMING';
+  amount: number;
+  currency?: string;
+  icon?: string;
+  notes?: string;
+  frequency: BillFrequency;
+  customIntervalDays?: number;
+  nextDueDate: string;
+  dueDate?: string;
+  dueDayNumber?: number;
   paidBy: 'Leslie' | 'Asa' | 'Shared';
-  autoPrefill: boolean;
+  splitType?: BillSplitType;
+  splitDetails?: { partnerA: number; partnerB: number };
+  paymentMethod?: BillPaymentMethod;
+  status: BillStatus;
+  autoLogTransaction?: boolean;
+  reminderDaysBefore?: number;
+  lastPaidDate?: string;
+  autoPrefill?: boolean;
+  createdAt?: string;
+}
+
+export interface Attachment {
+  type: 'TASK' | 'EXPENSE' | 'BUZZ';
+  title: string;
+  amount?: number;
+  id: string;
 }
 
 export interface ChatMessage {
@@ -85,12 +111,7 @@ export interface ChatMessage {
   senderName: string;
   content: string;
   timestamp: string;
-  attachment?: {
-    type: 'TASK' | 'EXPENSE' | 'BUZZ';
-    title: string;
-    amount?: number;
-    id: string;
-  };
+  attachment?: Attachment;
 }
 
 export interface ContextualComment {
@@ -109,22 +130,132 @@ export interface QuickNote {
   timestamp: string;
 }
 
+export type DebtCategory =
+  | 'bank_loan'
+  | 'microfinance'
+  | 'digital_app'
+  | 'cooperative'
+  | 'ajo_esusu'
+  | 'personal_family'
+  | 'bnpl'
+  | 'salary_advance'
+  | 'credit_card'
+  | 'other';
+
+export type DebtRateType = 'flat_monthly' | 'reducing_balance' | 'daily_rate' | 'zero_interest';
+export type DebtRepaymentFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'lump_sum';
+export type DebtRepaymentMethod = 'salary_deduction' | 'bank_transfer' | 'direct_debit' | 'cash' | 'ussd';
+
+export interface DebtPayment {
+  id: string;
+  debtId: string;
+  amount: number;
+  principalPaid: number;
+  interestPaid: number;
+  paymentDate: string;
+  paidBy?: string;
+  createdAt?: string;
+}
+
 export interface DebtAccount {
   id: string;
+  householdId?: string;
   name: string;
+  category: DebtCategory;
+  lenderName?: string;
+  principalAmount: number;
   balance: number;
+  rateType: DebtRateType;
   interestRate: number;
+  effectiveAPR: number;
+  repaymentFrequency: DebtRepaymentFrequency;
+  loanTermMonths?: number;
+  repaymentMethod?: DebtRepaymentMethod;
   minimumPayment: number;
-  dueDate: string;
-  startDate: string;
+  startDate?: string;
+  nextDueDate?: string;
+  dueDate?: string;
+  currency?: string;
+  paidBy: 'Leslie' | 'Asa' | 'Shared';
+  isPrivate?: boolean;
+  notes?: string;
+  status: 'ACTIVE' | 'PAID_OFF';
+  payments?: DebtPayment[];
+  createdAt?: string;
+}
+
+export type GoalCategory =
+  | 'Wedding'
+  | 'Japa'
+  | 'Rent'
+  | 'New Car'
+  | 'Emergency'
+  | 'Travel'
+  | 'Education'
+  | 'Gift'
+  | 'Custom';
+
+export type GoalCadence = 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'manual';
+export type GoalOwnership = 'individual' | 'joint' | 'household';
+
+export interface SavingsContribution {
+  id: string;
+  goalId: string;
+  contributorName: string;
+  amount: number;
+  contributionDate: string;
+  note?: string;
+  createdAt?: string;
 }
 
 export interface SavingsGoal {
   id: string;
+  householdId?: string;
   name: string;
-  goalAmount: number;
+  icon?: string;
+  imageUrl?: string;
+  category: GoalCategory;
+  targetAmount: number;
+  currentAmount: number;
   startingBalance: number;
-  monthlyContribution: number;
+  currency?: string;
+  targetDate?: string;
+  cadence: GoalCadence;
+  suggestedContribution: number;
+  ownership: GoalOwnership;
+  externalStorageNote?: string;
+  isPrivate?: boolean;
+  status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  contributions?: SavingsContribution[];
+  createdAt?: string;
+  goalAmount?: number;
+  monthlyContribution?: number;
+}
+
+export type IncomeCategory =
+  | 'Salary'
+  | 'Freelance'
+  | 'Business'
+  | 'Dividends'
+  | 'Rental Income'
+  | 'Gift Income'
+  | 'Crypto/Investments'
+  | 'Other';
+
+export type IncomeCadence = 'monthly' | 'bi-weekly' | 'weekly' | 'one-off';
+
+export interface IncomeStream {
+  id: string;
+  householdId?: string;
+  title: string;
+  category: IncomeCategory;
+  amount: number;
+  currency?: string;
+  cadence: IncomeCadence;
+  earnedBy: 'Leslie' | 'Asa' | 'Joint';
+  notes?: string;
+  status: 'ACTIVE' | 'PAUSED';
+  createdAt?: string;
 }
 
 export interface AppPreferences {
