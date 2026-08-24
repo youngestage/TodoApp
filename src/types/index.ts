@@ -40,6 +40,17 @@ export interface Task {
     category: string;
   };
   commentsCount?: number;
+  subTasks?: { id: string; title: string; completed: boolean; completedBy?: string }[];
+  tags?: string[];
+  folderId?: string;
+  completedBy?: string;
+}
+
+export interface TaskFolder {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
 }
 
 export type BudgetCategoryType = 'Income' | 'Expenses' | 'Bills' | 'Savings' | 'Investments' | 'Debt';

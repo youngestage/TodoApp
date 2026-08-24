@@ -22,6 +22,7 @@ export async function fetchHouseholdDataFromDB(
   currentUser?: User;
   partnerUser: User;
   tasks: Task[];
+  folders: any[];
   transactions: Transaction[];
   chatMessages: ChatMessage[];
   quickNotes: QuickNote[];
@@ -90,7 +91,11 @@ export async function fetchHouseholdDataFromDB(
       completed: t.completed ?? false,
       userACompleted: t.user_a_completed || false,
       userBCompleted: t.user_b_completed || false,
-      commentsCount: t.comments_count || 0
+      commentsCount: t.comments_count || 0,
+      subTasks: t.sub_tasks || [],
+      tags: t.tags || [],
+      folderId: t.folder_id,
+      completedBy: t.completed_by
     }));
 
     // 4. Fetch transactions
@@ -148,6 +153,19 @@ export async function fetchHouseholdDataFromDB(
       timestamp: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }));
 
+    // 7. Fetch task folders
+    const { data: foldersData } = await supabase
+      .from('task_folders')
+      .select('*')
+      .eq('household_id', householdId);
+
+    const folders = (foldersData || []).map(f => ({
+      id: f.id,
+      name: f.name,
+      icon: f.icon,
+      color: f.color
+    }));
+
     const household: Household = {
       id: hh.id,
       name: hh.name,
@@ -167,6 +185,7 @@ export async function fetchHouseholdDataFromDB(
       currentUser: foundCurrentUser,
       partnerUser,
       tasks,
+      folders,
       transactions,
       chatMessages,
       quickNotes
@@ -279,4 +298,102 @@ export async function leaveHouseholdInDB(currentUserId: string, currentHousehold
   const newCode = generateFreshInviteCode();
   localStorage.setItem('coupletodo_permanent_invite_code', newCode);
   return newCode;
+}
+
+// -----------------------------------------
+// NEW WRITES FOR LIST STUDIO
+// -----------------------------------------
+
+export async function saveTaskToDB(task: Task, householdId: string) {
+  if (!householdId || householdId.startsWith('hh_')) return;
+  
+  const validPriority = (task.priority === 'High' || task.priority === 'Medium' || task.priority === 'Low') 
+    ? task.priority 
+    : 'Medium';
+
+  const validFolderId = task.folderId && !task.folderId.startsWith('f-') 
+    ? task.folderId 
+    : null;
+
+  const { error } = await supabase.from('tasks').insert({
+    id: task.id,
+    household_id: householdId,
+    title: task.title,
+    description: task.description,
+    category: task.category || 'Home',
+    is_joint: task.isJoint,
+    assigned_to_name: task.assignedToName || 'Both',
+    due_date: task.dueDate || 'Today',
+    priority: validPriority,
+    completed: task.completed ?? false,
+    user_a_completed: task.userACompleted ?? false,
+    user_b_completed: task.userBCompleted ?? false,
+    sub_tasks: task.subTasks || [],
+    tags: task.tags || [],
+    folder_id: validFolderId,
+    completed_by: task.completedBy || null
+  });
+
+  if (error) {
+    console.warn('Supabase task insert error:', error.message, error.details);
+  }
+}
+
+export async function updateTaskInDB(taskId: string, updates: Partial<Task>) {
+  if (taskId.startsWith('task-')) return; // Ignore local-only mock tasks
+  
+  const dbUpdates: any = {};
+  if (updates.title !== undefined) dbUpdates.title = updates.title;
+  if (updates.completed !== undefined) dbUpdates.completed = updates.completed;
+  if (updates.userACompleted !== undefined) dbUpdates.user_a_completed = updates.userACompleted;
+  if (updates.userBCompleted !== undefined) dbUpdates.user_b_completed = updates.userBCompleted;
+  if (updates.subTasks !== undefined) dbUpdates.sub_tasks = updates.subTasks;
+  if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+  if (updates.completedBy !== undefined) dbUpdates.completed_by = updates.completedBy;
+  if (updates.folderId !== undefined) {
+    dbUpdates.folder_id = updates.folderId && !updates.folderId.startsWith('f-') ? updates.folderId : null;
+  }
+  if (updates.priority !== undefined) {
+    dbUpdates.priority = (updates.priority === 'High' || updates.priority === 'Medium' || updates.priority === 'Low') 
+      ? updates.priority 
+      : 'Medium';
+  }
+
+  if (Object.keys(dbUpdates).length > 0) {
+    const { error } = await supabase.from('tasks').update(dbUpdates).eq('id', taskId);
+    if (error) {
+      console.warn('Supabase task update error:', error.message);
+    }
+  }
+}
+
+export async function deleteTaskFromDB(taskId: string) {
+  try {
+    await supabase.from('tasks').delete().eq('id', taskId);
+  } catch (err) {
+    console.warn('Error deleting task from DB:', err);
+  }
+}
+
+export async function saveFolderToDB(folder: any, householdId: string) {
+  if (!householdId || householdId.startsWith('hh_')) return;
+  try {
+    await supabase.from('task_folders').insert({
+      id: folder.id,
+      household_id: householdId,
+      name: folder.name,
+      icon: folder.icon,
+      color: folder.color
+    });
+  } catch (err) {
+    console.warn('Error saving folder to DB:', err);
+  }
+}
+
+export async function deleteFolderFromDB(folderId: string) {
+  try {
+    await supabase.from('task_folders').delete().eq('id', folderId);
+  } catch (err) {
+    console.warn('Error deleting folder from DB:', err);
+  }
 }

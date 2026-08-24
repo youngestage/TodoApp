@@ -54,6 +54,7 @@ export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], Househol
         partnerUser: data.partnerUser,
         ...(data.currentUser ? { currentUser: data.currentUser } : {}),
         tasks: data.tasks.length > 0 ? data.tasks : state.tasks,
+        folders: data.folders && data.folders.length > 0 ? data.folders : state.folders || [],
         transactions: data.transactions.length > 0 ? data.transactions : state.transactions,
         chatMessages: data.chatMessages.length > 0 ? data.chatMessages : state.chatMessages,
         quickNotes: data.quickNotes.length > 0 ? data.quickNotes : state.quickNotes

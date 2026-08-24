@@ -27,6 +27,7 @@ export const QuickActionSheet: React.FC = () => {
   const [taskCategory, setTaskCategory] = useState<'Home' | 'Bills' | 'Travel' | 'Date Night' | 'Shopping'>('Home');
   const [taskIsJoint, setTaskIsJoint] = useState(true);
   const [taskDueDate, setTaskDueDate] = useState('Tomorrow');
+  const [taskPriority, setTaskPriority] = useState<'High' | 'Medium' | 'Low'>('Medium');
 
   const [messageText, setMessageText] = useState('');
 
@@ -58,9 +59,10 @@ export const QuickActionSheet: React.FC = () => {
       title: taskTitle,
       category: taskCategory,
       isJoint: taskIsJoint,
-      assignedToName: taskIsJoint ? 'Both' : currentUser.name,
+      assignedToName: (taskIsJoint ? 'Both' : (currentUser?.name || 'Leslie')) as any,
       dueDate: taskDueDate,
-      priority: 'Medium'
+      priority: taskPriority,
+      subTasks: []
     });
 
     setTaskTitle('');
@@ -261,7 +263,7 @@ export const QuickActionSheet: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-[#6B6560]">Category</label>
                     <select
@@ -288,6 +290,19 @@ export const QuickActionSheet: React.FC = () => {
                       <option value="Tomorrow">Tomorrow</option>
                       <option value="This Weekend">This Weekend</option>
                       <option value="Next Week">Next Week</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[#6B6560]">Priority</label>
+                    <select
+                      value={taskPriority}
+                      onChange={(e) => setTaskPriority(e.target.value as any)}
+                      className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
+                    >
+                      <option value="High">High 🔴</option>
+                      <option value="Medium">Medium 🟡</option>
+                      <option value="Low">Low 🟢</option>
                     </select>
                   </div>
                 </div>
