@@ -138,7 +138,7 @@ export default function App() {
         if (payload.eventType === 'INSERT' && payload.new) {
           const newMsg = payload.new;
           const currentStore = useStore.getState();
-          
+
           const formattedMsg = {
             id: newMsg.id,
             senderName: newMsg.sender_name,
@@ -151,23 +151,6 @@ export default function App() {
               id: newMsg.attachment_ref_id || newMsg.id
             } : undefined
           };
-
-          const alreadyPresent = currentStore.chatMessages.some(m => m.id === newMsg.id);
-          if (alreadyPresent) {
-            return;
-          }
-
-          const optimisticIndex = currentStore.chatMessages.findIndex(
-            m => m.senderName === newMsg.sender_name && m.content === newMsg.content && (m.id.startsWith('msg-') || m.id.length < 32)
-          );
-
-          if (optimisticIndex !== -1) {
-            const updated = [...currentStore.chatMessages];
-            updated[optimisticIndex] = formattedMsg;
-            useStore.setState({ chatMessages: updated });
-          } else {
-            useStore.setState({ chatMessages: [...currentStore.chatMessages, formattedMsg] });
-          }
 
           if (newMsg.sender_name !== currentStore.currentUser.name) {
             sendPushNotification(`New Message from ${newMsg.sender_name}`, newMsg.content || '');
@@ -369,7 +352,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#231F1E] text-[#231F1E] font-sans antialiased selection:bg-[#EF713F] selection:text-white flex flex-col overflow-x-hidden">
-      
+
       {/* Typewriter & Color Woosh App Entrance Experience */}
       <WelcomeWoosh />
 
