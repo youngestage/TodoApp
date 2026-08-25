@@ -12,6 +12,7 @@ import {
 export interface HouseholdSlice {
   household: Household;
   partnerUser: User;
+  setPartnerPresence: (isOnline: boolean, lastSeen?: string) => void;
   fetchHouseholdData: (householdId: string) => Promise<void>;
   ensureUserHousehold: (userId: string, userName: string) => Promise<void>;
   joinHouseholdWithKey: (inviteCode: string) => Promise<void>;
@@ -44,6 +45,16 @@ export const defaultHousehold: Household = {
 export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], HouseholdSlice> = (set, get) => ({
   household: defaultHousehold,
   partnerUser: defaultWaitingPartner,
+
+  setPartnerPresence: (isOnline: boolean, lastSeen?: string) => {
+    set((state: any) => ({
+      partnerUser: {
+        ...state.partnerUser,
+        isOnline,
+        ...(lastSeen ? { lastSeen } : (isOnline ? {} : { lastSeen: new Date().toISOString() }))
+      }
+    }));
+  },
 
   fetchHouseholdData: async (householdId: string) => {
     const stateAny: any = get();

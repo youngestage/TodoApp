@@ -53,7 +53,8 @@ export async function fetchHouseholdDataFromDB(
       id: p.id,
       name: p.name,
       avatarUrl: p.avatar_url || `https://api.dicebear.com/7.x/micah/svg?seed=${p.name}`,
-      isOnline: true,
+      isOnline: p.is_online ?? false,
+      lastSeen: p.last_seen_at || p.updated_at || undefined,
       role: p.role as any
     }));
 
@@ -863,4 +864,17 @@ export async function updateHouseholdStartDateInDB(householdId: string, startDat
     console.warn('Error updating relationship start date in DB:', err);
   }
 }
+
+export async function updateUserPresenceInDB(userId: string, isOnline: boolean) {
+  if (!userId || userId.startsWith('usr_')) return;
+  try {
+    await supabase.from('profiles').update({
+      is_online: isOnline,
+      last_seen_at: new Date().toISOString()
+    }).eq('id', userId);
+  } catch (err) {
+    console.warn('Error updating user presence in DB:', err);
+  }
+}
+
 

@@ -5,6 +5,7 @@ export interface User {
   name: string;
   avatarUrl: string;
   isOnline: boolean;
+  lastSeen?: string;
   role: 'partner_a' | 'partner_b';
 }
 
