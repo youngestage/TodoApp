@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Avatar } from '../ui/Avatar';
+import { formatLastSeen } from '../../utils/dateUtils';
 import {
   Send2,
   Heart,
@@ -170,7 +171,7 @@ export const ChatView: React.FC = () => {
               >
                 <div className="flex items-center space-x-3.5 min-w-0 flex-1 pr-3">
                   <div className="relative shrink-0">
-                    <Avatar name={conv.title} src={conv.avatar} size="md" />
+                    <Avatar name={conv.title} src={conv.avatar} size="md" isOnline={conv.id === 'partner' ? partnerUser.isOnline : undefined} />
                   </div>
 
                   <div className="space-y-0.5 min-w-0 flex-1">
@@ -225,13 +226,14 @@ export const ChatView: React.FC = () => {
               </button>
 
               <div className="flex items-center space-x-3">
-                <Avatar name={partnerUser.name} src={partnerUser.avatarUrl} size="md" />
+                <Avatar name={partnerUser.name} src={partnerUser.avatarUrl} size="md" isOnline={partnerUser.isOnline} />
                 <div>
                   <h2 className="font-bold text-base text-[#231F1E] flex items-center space-x-1">
                     <span>{partnerUser.name}</span>
                   </h2>
-                  <p className="text-[11px] text-[#6B6560] font-mono">
-                    online
+                  <p className="text-[11px] text-[#6B6560] font-mono flex items-center gap-1.5">
+                    <span className={`inline-block w-2 h-2 rounded-full ${partnerUser.isOnline ? 'bg-[#4A7C59] animate-pulse' : 'bg-slate-400'}`} />
+                    <span>{formatLastSeen(partnerUser.lastSeen, partnerUser.isOnline)}</span>
                   </p>
                 </div>
               </div>

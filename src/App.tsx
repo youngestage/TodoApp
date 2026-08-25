@@ -18,10 +18,86 @@ import { QuickActionSheet, ContextualThreadDrawer, NotificationsDrawer } from '.
 import { SettleUpModal, QuickNoteModal, SettingsModal } from './components/modals';
 import { WelcomeWoosh } from './components/widgets';
 import { sendPushNotification } from './utils/notifications';
+import { updateUserPresenceInDB } from './services';
 import { Lock, TickCircle, ArrowRight, CloseCircle } from 'iconsax-react';
 
 export default function App() {
-  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData } = useStore();
+  const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData, currentUser, partnerUser, setPartnerPresence } = useStore();
+
+
+  // Supabase Realtime Presence & Live Online / Last Seen status
+  useEffect(() => {
+    if (!household.id || household.id.startsWith('hh_') || !currentUser?.id) return;
+
+    updateUserPresenceInDB(currentUser.id, true);
+
+    const presenceChannel = supabase.channel(`presence_hh_${household.id}`, {
+      config: {
+        presence: { key: currentUser.id }
+      }
+    });
+
+    const syncPresenceState = () => {
+      const state = presenceChannel.presenceState();
+      if (partnerUser?.id && partnerUser.id !== 'usr_partner_waiting') {
+        const partnerPresences = state[partnerUser.id] || [];
+        const isPartnerOnline = partnerPresences.length > 0;
+        const lastSeen = (partnerPresences[0] as any)?.last_seen || partnerUser.lastSeen;
+        setPartnerPresence(isPartnerOnline, lastSeen);
+      }
+    };
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, syncPresenceState)
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        if (partnerUser?.id && key === partnerUser.id) {
+          setPartnerPresence(true, (newPresences[0] as any)?.last_seen || new Date().toISOString());
+        }
+      })
+      .on('presence', { event: 'leave' }, ({ key }) => {
+        if (partnerUser?.id && key === partnerUser.id) {
+          setPartnerPresence(false, new Date().toISOString());
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            user_id: currentUser.id,
+            name: currentUser.name,
+            last_seen: new Date().toISOString()
+          });
+        }
+      });
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        updateUserPresenceInDB(currentUser.id, true);
+        presenceChannel.track({
+          user_id: currentUser.id,
+          name: currentUser.name,
+          last_seen: new Date().toISOString()
+        });
+      } else {
+        updateUserPresenceInDB(currentUser.id, false);
+        presenceChannel.untrack();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      updateUserPresenceInDB(currentUser.id, false);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      presenceChannel.untrack();
+      supabase.removeChannel(presenceChannel);
+      updateUserPresenceInDB(currentUser.id, false);
+    };
+  }, [household.id, currentUser?.id, partnerUser?.id, setPartnerPresence]);
 
   // Supabase Realtime: Sync partner join & unpair events live & send push notification
   useEffect(() => {

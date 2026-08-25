@@ -62,3 +62,42 @@ export function formatFriendlyDate(dateStr: string): string {
     year: 'numeric'
   });
 }
+
+/**
+ * Formats a last_seen timestamp or ISO string into a human friendly string.
+ * Examples:
+ * - "online" (if isOnline is true)
+ * - "last seen just now" (< 1 min)
+ * - "last seen 5m ago" (< 1 hr)
+ * - "last seen @ 4:15 PM" (today)
+ * - "last seen yesterday @ 4:15 PM" (yesterday)
+ * - "last seen Aug 24 @ 4:15 PM" (older)
+ */
+export function formatLastSeen(lastSeen?: string | number | Date, isOnline?: boolean): string {
+  if (isOnline) return 'online';
+  if (!lastSeen) return 'offline';
+
+  const date = typeof lastSeen === 'object' && lastSeen instanceof Date ? lastSeen : new Date(lastSeen);
+  if (isNaN(date.getTime())) return 'offline';
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 1) return 'last seen just now';
+  if (diffMinutes < 60) return `last seen ${diffMinutes}m ago`;
+
+  const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  const isToday = now.toDateString() === date.toDateString();
+  if (isToday) return `last seen @ ${timeStr}`;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = yesterday.toDateString() === date.toDateString();
+  if (isYesterday) return `last seen yesterday @ ${timeStr}`;
+
+  const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `last seen ${monthDay} @ ${timeStr}`;
+}
+

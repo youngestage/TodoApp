@@ -46,8 +46,8 @@ export const Avatar: React.FC<AvatarProps> = ({
 
       {isOnline !== undefined && (
         <span
-          className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ${
-            isOnline ? 'bg-[#4A7C59]' : 'bg-slate-300'
+          className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-white ${
+            isOnline ? 'bg-[#4A7C59] animate-pulse' : 'bg-slate-300'
           }`}
         />
       )}
