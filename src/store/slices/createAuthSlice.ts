@@ -62,7 +62,7 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set,
     });
   },
 
-  currentView: 'onboarding',
+  currentView: localStorage.getItem('coupletodo_onboarding_completed') === 'true' ? 'dashboard' : 'onboarding',
   setCurrentView: (view) => set({ currentView: view }),
   isOnboardingCompleted: localStorage.getItem('coupletodo_onboarding_completed') === 'true',
   setOnboardingCompleted: (completed) => {
