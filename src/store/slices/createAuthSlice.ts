@@ -55,6 +55,7 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set,
       await supabase.auth.signOut();
     } catch (err) {}
     localStorage.removeItem('coupletodo_onboarding_completed');
+    localStorage.removeItem('coupletodo_current_view');
     set({
       session: null,
       currentView: 'onboarding',
@@ -62,8 +63,13 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set,
     });
   },
 
-  currentView: localStorage.getItem('coupletodo_onboarding_completed') === 'true' ? 'dashboard' : 'onboarding',
-  setCurrentView: (view) => set({ currentView: view }),
+  currentView: localStorage.getItem('coupletodo_onboarding_completed') === 'true' 
+    ? (localStorage.getItem('coupletodo_current_view') as ViewMode || 'dashboard') 
+    : 'onboarding',
+  setCurrentView: (view) => {
+    localStorage.setItem('coupletodo_current_view', view);
+    set({ currentView: view });
+  },
   isOnboardingCompleted: localStorage.getItem('coupletodo_onboarding_completed') === 'true',
   setOnboardingCompleted: (completed) => {
     localStorage.setItem('coupletodo_onboarding_completed', completed ? 'true' : 'false');
