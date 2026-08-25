@@ -131,52 +131,54 @@ export const InviteView: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 2: Enter Partner's Key to Join (Input Space for Existing Accounts) */}
-          <div className="p-5 rounded-3xl bg-[#FBF9F5] border-0 space-y-3 text-left">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-mono font-bold uppercase text-[#8964B3]">
-                Have a Partner's Key? Join Their Space
-              </label>
+          {/* Section 2: Enter Partner's Key to Join (Shown only if not paired) */}
+          {!isPartnerConnected && (
+            <div className="p-5 rounded-3xl bg-[#FBF9F5] border-0 space-y-3 text-left">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-mono font-bold uppercase text-[#8964B3]">
+                  Have a Partner's Key? Join Their Space
+                </label>
+              </div>
+
+              {joinError && (
+                <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
+                  ⚠️ {joinError}
+                </div>
+              )}
+
+              {joinSuccess && (
+                <div className="p-3 rounded-2xl bg-[#EBF3ED] text-xs text-[#4A7C59] font-mono font-semibold">
+                  🎉 Successfully joined partner space! Synchronizing...
+                </div>
+              )}
+
+              <form onSubmit={handleJoinPartnerSpace} className="flex flex-col sm:flex-row items-center gap-2">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={inputCode}
+                  onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+                  placeholder="Enter 6-digit key (e.g. X7K2P9)"
+                  className="w-full sm:flex-1 px-4 py-3 bg-white rounded-2xl font-mono font-extrabold text-center sm:text-left text-sm text-[#8964B3] tracking-wider border-0 focus:outline-none focus:ring-2 focus:ring-[#8964B3]/30"
+                />
+
+                <button
+                  type="submit"
+                  disabled={isJoining || !inputCode.trim()}
+                  className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-[#8964B3] hover:bg-[#7853A2] disabled:opacity-50 text-white font-bold text-xs transition-all border-0 cursor-pointer shrink-0 shadow-xs flex items-center justify-center space-x-1"
+                >
+                  {isJoining ? (
+                    <span>Pairing...</span>
+                  ) : (
+                    <>
+                      <span>Join Partner Space</span>
+                      <ArrowRight size={16} variant="Linear" />
+                    </>
+                  )}
+                </button>
+              </form>
             </div>
-
-            {joinError && (
-              <div className="p-3 rounded-2xl bg-[#FFF5F0] text-xs text-[#EF713F] font-mono font-semibold">
-                ⚠️ {joinError}
-              </div>
-            )}
-
-            {joinSuccess && (
-              <div className="p-3 rounded-2xl bg-[#EBF3ED] text-xs text-[#4A7C59] font-mono font-semibold">
-                🎉 Successfully joined partner space! Synchronizing...
-              </div>
-            )}
-
-            <form onSubmit={handleJoinPartnerSpace} className="flex flex-col sm:flex-row items-center gap-2">
-              <input
-                type="text"
-                maxLength={6}
-                value={inputCode}
-                onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                placeholder="Enter 6-digit key (e.g. X7K2P9)"
-                className="w-full sm:flex-1 px-4 py-3 bg-white rounded-2xl font-mono font-extrabold text-center sm:text-left text-sm text-[#8964B3] tracking-wider border-0 focus:outline-none focus:ring-2 focus:ring-[#8964B3]/30"
-              />
-
-              <button
-                type="submit"
-                disabled={isJoining || !inputCode.trim()}
-                className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-[#8964B3] hover:bg-[#7853A2] disabled:opacity-50 text-white font-bold text-xs transition-all border-0 cursor-pointer shrink-0 shadow-xs flex items-center justify-center space-x-1"
-              >
-                {isJoining ? (
-                  <span>Pairing...</span>
-                ) : (
-                  <>
-                    <span>Join Partner Space</span>
-                    <ArrowRight size={16} variant="Linear" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
+          )}
 
           {/* Connected Status Card */}
           {isPartnerConnected ? (

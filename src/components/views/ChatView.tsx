@@ -128,27 +128,11 @@ export const ChatView: React.FC = () => {
   const conversationsList = [
     {
       id: 'partner',
-      title: `${partnerUser.name}`,
-      subtitle: chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'Say something sweet...',
-      time: chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].timestamp : '10:20 AM',
+      title: partnerUser.name.startsWith('Waiting') ? 'Partner' : partnerUser.name,
+      subtitle: chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'No messages yet. Say something sweet...',
+      time: chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].timestamp : '',
       unread: 0,
       avatar: partnerUser.avatarUrl
-    },
-    {
-      id: 'household',
-      title: 'Leslie & Asa Household',
-      subtitle: 'Asa: Scheduled Fibre Internet auto-pay for tomorrow',
-      time: '1h ago',
-      unread: 1,
-      isGroup: true
-    },
-    {
-      id: 'travel',
-      title: 'Cape Town Trip Planning',
-      subtitle: 'Leslie: Reserved ocean view Airbnb shuttle',
-      time: 'Yesterday',
-      unread: 0,
-      isGroup: true
     }
   ];
 

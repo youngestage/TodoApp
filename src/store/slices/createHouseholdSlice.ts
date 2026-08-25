@@ -5,7 +5,8 @@ import {
   ensureUserHouseholdInDB,
   joinHouseholdWithKeyInDB,
   leaveHouseholdInDB,
-  getPermanentInviteCode
+  getPermanentInviteCode,
+  updateHouseholdStartDateInDB
 } from '../../services';
 
 export interface HouseholdSlice {
@@ -53,15 +54,15 @@ export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], Househol
         household: data.household,
         partnerUser: data.partnerUser,
         ...(data.currentUser ? { currentUser: data.currentUser } : {}),
-        tasks: data.tasks.length > 0 ? data.tasks : state.tasks,
-        folders: data.folders && data.folders.length > 0 ? data.folders : state.folders || [],
-        transactions: data.transactions.length > 0 ? data.transactions : state.transactions,
-        recurringBills: data.recurringBills && data.recurringBills.length > 0 ? data.recurringBills : state.recurringBills,
-        debtAccounts: data.debtAccounts && data.debtAccounts.length > 0 ? data.debtAccounts : state.debtAccounts,
-        savingsGoals: data.savingsGoals && data.savingsGoals.length > 0 ? data.savingsGoals : state.savingsGoals,
-        incomeStreams: data.incomeStreams && data.incomeStreams.length > 0 ? data.incomeStreams : state.incomeStreams,
-        chatMessages: data.chatMessages.length > 0 ? data.chatMessages : state.chatMessages,
-        quickNotes: data.quickNotes.length > 0 ? data.quickNotes : state.quickNotes
+        tasks: data.tasks,
+        folders: data.folders || [],
+        transactions: data.transactions,
+        recurringBills: data.recurringBills || [],
+        debtAccounts: data.debtAccounts || [],
+        savingsGoals: data.savingsGoals || [],
+        incomeStreams: data.incomeStreams || [],
+        chatMessages: data.chatMessages,
+        quickNotes: data.quickNotes
       }));
     }
   },
@@ -107,10 +108,16 @@ export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], Househol
     });
   },
 
-  updateHouseholdStartDate: (date) => set((state) => ({
-    household: {
-      ...state.household,
-      relationshipStartDate: date
+  updateHouseholdStartDate: (date) => {
+    const hhId = get().household?.id;
+    set((state) => ({
+      household: {
+        ...state.household,
+        relationshipStartDate: date
+      }
+    }));
+    if (hhId) {
+      updateHouseholdStartDateInDB(hhId, date);
     }
-  }))
+  }
 });

@@ -4,7 +4,9 @@ import { Home, TaskSquare, WalletMoney, MessageText, Setting2, UserAdd, Heart, M
 import { ViewMode } from '../../types';
 
 export const Sidebar: React.FC = () => {
-  const { currentView, setCurrentView, household, setQuickActionOpen } = useStore();
+  const { currentView, setCurrentView, household, partnerUser, setQuickActionOpen } = useStore();
+
+  const isPartnerConnected = (household.members?.length || 0) >= 2 || (partnerUser && partnerUser.id !== 'usr_partner_waiting');
 
   const navItems: { id: ViewMode; label: string; icon: React.ComponentType<any> }[] = [
     { id: 'dashboard', label: 'Home Dashboard', icon: Home },
@@ -29,7 +31,7 @@ export const Sidebar: React.FC = () => {
           <div>
             <h3 className="font-bold text-sm text-[#231F1E] truncate max-w-[140px]">{household.name}</h3>
             <p className="text-[11px] text-[#6B6560]">
-              {(household.members?.length || 1) >= 2 ? '2/2 Members Active' : '1/2 Members (Invite Partner)'}
+              {isPartnerConnected ? '2/2 Members Active' : '1/2 Members (Invite Partner)'}
             </p>
           </div>
         </div>
@@ -39,7 +41,7 @@ export const Sidebar: React.FC = () => {
           className="w-full py-1.5 px-3 rounded-xl bg-[#FAF6EB] hover:bg-[#F5ECCF] text-[#CF9130] border-0 text-xs font-medium flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
         >
           <UserAdd size={14} variant="Broken" />
-          <span>Invite Partner Link</span>
+          <span>{isPartnerConnected ? 'View Household' : 'Invite Partner Link'}</span>
         </button>
       </div>
 

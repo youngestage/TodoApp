@@ -12,6 +12,7 @@ export interface AuthSlice {
   setOnboardingCompleted: (completed: boolean) => void;
   currentUser: User;
   updateUserAvatar: (url: string) => void;
+  updateUserName: (name: string) => Promise<void>;
 }
 
 export const defaultUserLeslie: User = {
@@ -22,22 +23,29 @@ export const defaultUserLeslie: User = {
   role: 'partner_a'
 };
 
-export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set) => ({
+export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
   session: null,
   setSession: (session) => {
     set({ session });
     if (session?.user) {
       const metadata = session.user.user_metadata || {};
-      const name = metadata.name || session.user.email?.split('@')[0] || 'Partner A';
+      const rawFallback = metadata.name || metadata.full_name || session.user.email?.split('@')[0] || 'Partner A';
       
-      set({
-        currentUser: {
-          id: session.user.id,
-          name,
-          avatarUrl: metadata.avatar_url || 'https://api.dicebear.com/7.x/micah/svg?seed=' + name + '&backgroundColor=EF713F',
-          isOnline: true,
-          role: 'partner_a'
-        }
+      set((state: any) => {
+        const currentName = state.currentUser?.name;
+        const nameToUse = (currentName && currentName !== 'Partner A' && currentName !== 'usr_me')
+          ? currentName
+          : rawFallback;
+
+        return {
+          currentUser: {
+            id: session.user.id,
+            name: nameToUse,
+            avatarUrl: metadata.avatar_url || state.currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/micah/svg?seed=' + nameToUse + '&backgroundColor=EF713F',
+            isOnline: true,
+            role: state.currentUser?.role || 'partner_a'
+          }
+        };
       });
     }
   },
@@ -64,5 +72,23 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set)
   currentUser: defaultUserLeslie,
   updateUserAvatar: (url) => set((state) => ({
     currentUser: { ...state.currentUser, avatarUrl: url }
-  }))
+  })),
+  updateUserName: async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    set((state: any) => ({
+      currentUser: {
+        ...state.currentUser,
+        name: trimmed
+      }
+    }));
+    const userId = get().currentUser?.id || get().session?.user?.id;
+    if (userId && !userId.startsWith('usr_')) {
+      try {
+        await supabase.from('profiles').update({ name: trimmed }).eq('id', userId);
+      } catch (e) {
+        console.warn('Error updating profile name in DB:', e);
+      }
+    }
+  }
 });

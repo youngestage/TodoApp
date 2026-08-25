@@ -313,12 +313,12 @@ export const defaultIncomeStreams: IncomeStream[] = [
 
 export const createTransactionSlice: StateCreator<StoreState, [], [], TransactionSlice> = (set, get) => ({
   transactions: [],
-  recurringBills: defaultRecurringBills,
-  debtAccounts: defaultDebtAccounts,
+  recurringBills: [],
+  debtAccounts: [],
   debtStrategy: 'Avalanche',
-  extraDebtContribution: 20000,
-  savingsGoals: defaultSavingsGoals,
-  incomeStreams: defaultIncomeStreams,
+  extraDebtContribution: 0,
+  savingsGoals: [],
+  incomeStreams: [],
 
   hideBalances: false,
   toggleHideBalances: () => set((state: StoreState) => ({ hideBalances: !state.hideBalances })),

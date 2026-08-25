@@ -259,11 +259,11 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({ isOpen, onClos
             {/* Yield / External Storage Location Note */}
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-[#6B6560]">
-                Physical Money Storage / Yield Note (e.g. PiggyVest, Cowrywise)
+                Physical Money Storage / Yield Note
               </label>
               <input
                 type="text"
-                placeholder="E.g. PiggyVest SafeLock @ 15% p.a. or Cowrywise"
+                placeholder="E.g. High-Yield Savings Account or Mutual Fund"
                 value={externalStorageNote}
                 onChange={(e) => setExternalStorageNote(e.target.value)}
                 className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs text-[#231F1E] focus:outline-none"

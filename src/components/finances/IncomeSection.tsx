@@ -29,6 +29,16 @@ export const IncomeSection: React.FC = () => {
   const [editingStream, setEditingStream] = useState<IncomeStream | null>(null);
   const [activeFilter, setActiveFilter] = useState<'All' | 'Leslie' | 'Asa' | 'Joint'>('All');
 
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
+
+  const filterTabs = [
+    { id: 'All', label: 'All' },
+    { id: 'Leslie', label: userAName },
+    { id: 'Asa', label: userBName },
+    { id: 'Joint', label: 'Joint' }
+  ] as const;
+
   const currency = preferences?.currency || '₦';
 
   const getUserAvatar = (name: string) => getUserAvatarUrl(name, currentUser, partnerUser);
@@ -36,12 +46,12 @@ export const IncomeSection: React.FC = () => {
   const activeStreams = incomeStreams.filter(i => i.status !== 'PAUSED');
   const totalMonthlyIncome = activeStreams.reduce((acc, i) => acc + i.amount, 0);
 
-  const leslieIncome = activeStreams
-    .filter(i => i.earnedBy === 'Leslie' || i.earnedBy === currentUser.name)
+  const partnerAIncome = activeStreams
+    .filter(i => i.earnedBy === currentUser?.name || i.earnedBy === userAName)
     .reduce((acc, i) => acc + i.amount, 0);
 
-  const asaIncome = activeStreams
-    .filter(i => i.earnedBy === 'Asa' || i.earnedBy === partnerUser.name)
+  const partnerBIncome = activeStreams
+    .filter(i => i.earnedBy === partnerUser?.name || i.earnedBy === userBName)
     .reduce((acc, i) => acc + i.amount, 0);
 
   const jointIncome = activeStreams
@@ -79,9 +89,9 @@ export const IncomeSection: React.FC = () => {
             Partner Earnings Split
           </span>
           <div className="font-display text-xl font-extrabold text-[#231F1E] flex items-center justify-between">
-            <span>{currency}{leslieIncome.toLocaleString()}</span>
+            <span>{currency}{partnerAIncome.toLocaleString()}</span>
             <span className="text-gray-300 font-normal">|</span>
-            <span>{currency}{asaIncome.toLocaleString()}</span>
+            <span>{currency}{partnerBIncome.toLocaleString()}</span>
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-[#6B6560]">
@@ -91,7 +101,7 @@ export const IncomeSection: React.FC = () => {
                 alt={currentUser.name}
                 className="w-4 h-4 rounded-full object-cover border border-[#EF713F]"
               />
-              <span className="font-mono">{currentUser.name.split(' ')[0]}</span>
+              <span className="font-mono">{userAName}</span>
             </div>
 
             <div className="flex items-center space-x-1.5">
@@ -100,7 +110,7 @@ export const IncomeSection: React.FC = () => {
                 alt={partnerUser.name}
                 className="w-4 h-4 rounded-full object-cover border border-[#4A7C59]"
               />
-              <span className="font-mono">{partnerUser.name.startsWith('Waiting') ? 'Partner' : partnerUser.name.split(' ')[0]}</span>
+              <span className="font-mono">{userBName}</span>
             </div>
           </div>
         </div>
@@ -134,15 +144,15 @@ export const IncomeSection: React.FC = () => {
 
           <div className="flex items-center space-x-2 shrink-0">
             <div className="flex items-center space-x-1 bg-[#FBF9F5] p-1 rounded-2xl">
-              {(['All', 'Leslie', 'Asa', 'Joint'] as const).map((tab) => (
+              {filterTabs.map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveFilter(tab)}
+                  key={tab.id}
+                  onClick={() => setActiveFilter(tab.id as any)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer ${
-                    activeFilter === tab ? 'bg-[#231F1E] text-white' : 'text-[#6B6560]'
+                    activeFilter === tab.id ? 'bg-[#231F1E] text-white' : 'text-[#6B6560]'
                   }`}
                 >
-                  {tab}
+                  {tab.label}
                 </button>
               ))}
             </div>

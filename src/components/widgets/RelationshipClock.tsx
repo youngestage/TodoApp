@@ -11,6 +11,12 @@ export const RelationshipClock: React.FC = () => {
   const [inputDate, setInputDate] = useState(household.relationshipStartDate || '2024-04-14');
 
   useEffect(() => {
+    if (household.relationshipStartDate) {
+      setInputDate(household.relationshipStartDate);
+    }
+  }, [household.relationshipStartDate]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setNow(new Date());
     }, 1000);
@@ -38,18 +44,11 @@ export const RelationshipClock: React.FC = () => {
 
   const format2 = (n: number) => n.toString().padStart(2, '0');
 
-  const handleSaveStartDate = async (e: React.FormEvent) => {
+  const handleSaveStartDate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputDate) return;
     updateHouseholdStartDate(inputDate);
     setDatePickerOpen(false);
-
-    // Save to Supabase if available
-    try {
-      await supabase.from('households').update({
-        created_at: new Date(inputDate).toISOString()
-      }).eq('id', household.id);
-    } catch (err) {}
   };
 
   return (

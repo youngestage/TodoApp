@@ -90,16 +90,70 @@ export default function App() {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'tasks',
-        filter: `household_id=eq.${household.id}`
+        table: 'tasks'
       }, async () => {
         await fetchHouseholdData(household.id);
       })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'transactions',
-        filter: `household_id=eq.${household.id}`
+        table: 'transactions'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'recurring_bills'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'debt_accounts'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'savings_goals'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'income_streams'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'quick_notes'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'debt_payments'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'savings_contributions'
+      }, async () => {
+        await fetchHouseholdData(household.id);
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'task_folders'
       }, async () => {
         await fetchHouseholdData(household.id);
       })
@@ -123,6 +177,11 @@ export default function App() {
         setSession(session);
 
         const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).maybeSingle();
+        if (prof?.name) {
+          useStore.setState((state) => ({
+            currentUser: { ...state.currentUser, name: prof.name }
+          }));
+        }
         if (prof?.household_id) {
           await fetchHouseholdData(prof.household_id);
           setOnboardingCompleted(true);
@@ -143,6 +202,11 @@ export default function App() {
         setSession(session);
         if (event === 'SIGNED_IN') {
           const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).maybeSingle();
+          if (prof?.name) {
+            useStore.setState((state) => ({
+              currentUser: { ...state.currentUser, name: prof.name }
+            }));
+          }
           if (prof?.household_id) {
             await fetchHouseholdData(prof.household_id);
             setOnboardingCompleted(true);

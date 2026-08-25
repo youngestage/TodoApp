@@ -129,7 +129,7 @@ export const LogContributionModal: React.FC<LogContributionModalProps> = ({ goal
               <label className="block text-xs font-semibold text-[#6B6560]">Note / Source (Optional)</label>
               <input
                 type="text"
-                placeholder="E.g. Bonus payout or PiggyVest auto-save"
+                placeholder="E.g. Bonus payout or monthly savings contribution"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs text-[#231F1E] focus:outline-none"

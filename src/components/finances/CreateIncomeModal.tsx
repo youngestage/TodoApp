@@ -11,7 +11,10 @@ interface CreateIncomeModalProps {
 }
 
 export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, onClose, editingStream }) => {
-  const { addIncomeStream, updateIncomeStream } = useStore();
+  const { addIncomeStream, updateIncomeStream, currentUser, partnerUser } = useStore();
+
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
 
   const [title, setTitle] = useState(editingStream?.title || '');
   const [category, setCategory] = useState<IncomeCategory>(editingStream?.category || 'Salary');
@@ -212,7 +215,7 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
                     earnedBy === 'Leslie' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
-                  Leslie
+                  {userAName}
                 </button>
 
                 <button
@@ -222,7 +225,7 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
                     earnedBy === 'Asa' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
-                  Asa
+                  {userBName}
                 </button>
               </div>
             </div>

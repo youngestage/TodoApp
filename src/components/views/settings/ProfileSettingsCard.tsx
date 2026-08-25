@@ -9,15 +9,33 @@ interface ProfileSettingsCardProps {
 }
 
 export const ProfileSettingsCard: React.FC<ProfileSettingsCardProps> = ({ onOpenDeleteModal }) => {
-  const { currentUser, household, updateUserAvatar } = useStore();
+  const { currentUser, household, updateUserAvatar, updateUserName } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [permissionState, setPermissionState] = useState<NotificationPermission>('default');
 
+  const [nameInput, setNameInput] = useState(currentUser.name);
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [nameSavedSuccess, setNameSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    setNameInput(currentUser.name);
+  }, [currentUser.name]);
+
   useEffect(() => {
     setPermissionState(getNotificationPermissionState());
   }, []);
+
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nameInput.trim()) return;
+    setIsSavingName(true);
+    await updateUserName(nameInput);
+    setIsSavingName(false);
+    setNameSavedSuccess(true);
+    setTimeout(() => setNameSavedSuccess(false), 2500);
+  };
 
   const presetAvatars = [
     'https://api.dicebear.com/7.x/micah/svg?seed=Leslie&backgroundColor=EF713F',
@@ -131,11 +149,28 @@ export const ProfileSettingsCard: React.FC<ProfileSettingsCardProps> = ({ onOpen
             />
           </div>
 
-          <div className="space-y-2 text-center sm:text-left">
+          <div className="space-y-3 flex-1 text-center sm:text-left">
             <div>
               <h4 className="font-bold text-base text-[#231F1E]">{currentUser.name} (You)</h4>
-              <p className="text-xs text-[#6B6560] font-mono">Partner A • {household.name}</p>
+              <p className="text-xs text-[#6B6560] font-mono">Partner • {household.name}</p>
             </div>
+
+            <form onSubmit={handleSaveName} className="flex items-center space-x-2 max-w-xs">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="Your Display Name"
+                className="px-3.5 py-2 bg-[#FBF9F5] rounded-xl text-xs font-bold text-[#231F1E] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30 flex-1"
+              />
+              <button
+                type="submit"
+                disabled={isSavingName}
+                className="px-3.5 py-2 rounded-xl bg-[#231F1E] hover:bg-black text-white font-bold text-xs border-0 cursor-pointer transition-colors shrink-0"
+              >
+                {nameSavedSuccess ? 'Saved! ✓' : isSavingName ? 'Saving...' : 'Save Name'}
+              </button>
+            </form>
 
             <button
               onClick={() => fileInputRef.current?.click()}

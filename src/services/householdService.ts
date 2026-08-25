@@ -291,6 +291,9 @@ export async function fetchHouseholdDataFromDB(
       inviteCode: hh.invite_code,
       maxMembers: hh.max_members || 2,
       members: members.length > 0 ? members : [foundCurrentUser || { id: 'usr_me', name: 'Partner A', avatarUrl: '', isOnline: true, role: 'partner_a' }],
+      relationshipStartDate: hh.relationship_start_date
+        ? new Date(hh.relationship_start_date).toISOString().split('T')[0]
+        : (hh.created_at ? new Date(hh.created_at).toISOString().split('T')[0] : '2024-04-14'),
       settleBalance: {
         debtor: partnerUser.name,
         creditor: foundCurrentUser?.name || 'Partner A',
@@ -844,3 +847,20 @@ export async function deleteIncomeStreamFromDB(streamId: string) {
     console.warn('Error deleting income stream from DB:', err);
   }
 }
+
+export async function updateHouseholdStartDateInDB(householdId: string, startDate: string) {
+  if (!householdId || householdId.startsWith('hh_')) return;
+  try {
+    const isoDate = new Date(startDate).toISOString();
+    const { error } = await supabase.from('households').update({
+      relationship_start_date: isoDate,
+      created_at: isoDate
+    }).eq('id', householdId);
+    if (error) {
+      console.warn('Error updating relationship_start_date in DB:', error.message);
+    }
+  } catch (err) {
+    console.warn('Error updating relationship start date in DB:', err);
+  }
+}
+

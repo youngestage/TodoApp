@@ -12,7 +12,10 @@ interface CreateDebtModalProps {
 }
 
 export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClose, editingDebt }) => {
-  const { addDebtAccount, updateDebtAccount } = useStore();
+  const { addDebtAccount, updateDebtAccount, currentUser, partnerUser } = useStore();
+
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
 
   const [name, setName] = useState(editingDebt?.name || '');
   const [category, setCategory] = useState<DebtCategory>(editingDebt?.category || 'bank_loan');
@@ -297,7 +300,7 @@ export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClos
                     paidBy === 'Leslie' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
-                  Leslie Only
+                  {userAName} Only
                 </button>
 
                 <button
@@ -307,7 +310,7 @@ export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClos
                     paidBy === 'Asa' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
-                  Asa Only
+                  {userBName} Only
                 </button>
               </div>
             </div>

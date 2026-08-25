@@ -55,6 +55,30 @@ export const SavingsGoalsSection: React.FC = () => {
     );
   };
 
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
+
+  let partnerASaved = 0;
+  let partnerBSaved = 0;
+
+  activeGoals.forEach((g) => {
+    if (g.contributions && g.contributions.length > 0) {
+      g.contributions.forEach((c) => {
+        if (c.contributorName === currentUser?.name || c.contributorName === 'Leslie' || c.contributorName === userAName) {
+          partnerASaved += c.amount;
+        } else if (c.contributorName === partnerUser?.name || c.contributorName === 'Asa' || c.contributorName === userBName) {
+          partnerBSaved += c.amount;
+        } else {
+          partnerASaved += c.amount / 2;
+          partnerBSaved += c.amount / 2;
+        }
+      });
+    } else {
+      partnerASaved += (g.currentAmount || 0) / 2;
+      partnerBSaved += (g.currentAmount || 0) / 2;
+    }
+  });
+
   const displayedGoals = activeTab === 'Active' ? activeGoals : archivedGoals;
 
   return (
@@ -83,20 +107,39 @@ export const SavingsGoalsSection: React.FC = () => {
           </div>
           <div className="flex items-center space-x-1.5 text-xs text-[#8964B3] font-mono">
             <TrendUp size={16} variant="Bold" />
-            <span>PiggyVest Target Math Active</span>
+            <span>Required Monthly Target</span>
           </div>
         </div>
 
+        {/* Partner Savings Breakdown Card */}
         <div className="bg-white p-5 rounded-3xl border-0 shadow-none space-y-2">
           <span className="text-xs font-semibold text-[#6B6560] block font-mono uppercase tracking-wider">
-            Active Household Goals
+            Savings Breakdown
           </span>
-          <div className="font-display text-2xl font-extrabold text-[#231F1E]">
-            {activeGoals.length} Active Pots
+          <div className="font-display text-xl font-extrabold text-[#231F1E] flex items-center justify-between">
+            <span>{defaultCurrency}{Math.round(partnerASaved).toLocaleString()}</span>
+            <span className="text-gray-300 font-normal">|</span>
+            <span>{defaultCurrency}{Math.round(partnerBSaved).toLocaleString()}</span>
           </div>
-          <div className="flex items-center space-x-1.5 text-xs text-[#4A7C59] font-mono">
-            <TickCircle size={16} variant="Bold" />
-            <span>Joint & Personal Tracking</span>
+
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-[#6B6560]">
+            <div className="flex items-center space-x-1.5">
+              <img
+                src={getUserAvatar(currentUser.name)}
+                alt={currentUser.name}
+                className="w-4 h-4 rounded-full object-cover border border-[#EF713F]"
+              />
+              <span className="font-mono">{userAName}</span>
+            </div>
+
+            <div className="flex items-center space-x-1.5">
+              <img
+                src={getUserAvatar(partnerUser.name)}
+                alt={partnerUser.name}
+                className="w-4 h-4 rounded-full object-cover border border-[#4A7C59]"
+              />
+              <span className="font-mono">{userBName}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -109,7 +152,7 @@ export const SavingsGoalsSection: React.FC = () => {
               Couple & Household Savings Goals
             </h2>
             <p className="text-xs text-[#6B6560]">
-              Target-savings plans, contributor attribution, and PiggyVest yield tracking
+              Target-savings plans and contributor attribution tracking
             </p>
           </div>
 
