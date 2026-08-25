@@ -231,9 +231,8 @@ export const ChatView: React.FC = () => {
                   <h2 className="font-bold text-base text-[#231F1E] flex items-center space-x-1">
                     <span>{partnerUser.name}</span>
                   </h2>
-                  <p className="text-[11px] text-[#6B6560] font-mono flex items-center gap-1.5">
-                    <span className={`inline-block w-2 h-2 rounded-full ${partnerUser.isOnline ? 'bg-[#4A7C59] animate-pulse' : 'bg-slate-400'}`} />
-                    <span>{formatLastSeen(partnerUser.lastSeen, partnerUser.isOnline)}</span>
+                  <p className="text-[11px] text-[#6B6560] font-mono">
+                    {formatLastSeen(partnerUser.lastSeen, partnerUser.isOnline)}
                   </p>
                 </div>
               </div>

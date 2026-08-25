@@ -71,8 +71,12 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
 
     sendPushNotification(`New Message from ${senderName}`, content);
 
+    const msgId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `msg-${Date.now()}`;
+
     const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
+      id: msgId,
       senderName,
       content,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -84,7 +88,7 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
     }));
 
     if (householdId && currentUserId) {
-      sendChatMessageToDB(householdId, currentUserId, senderName, content, attachment);
+      sendChatMessageToDB(householdId, currentUserId, senderName, content, attachment, msgId);
     }
   },
 
@@ -108,8 +112,12 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
       `${senderName} buzzed ${partnerName}! Tap to respond.`
     );
 
+    const msgId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `msg-buzz-${Date.now()}`;
+
     const buzzMsg: ChatMessage = {
-      id: `msg-buzz-${Date.now()}`,
+      id: msgId,
       senderName,
       content: buzzText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -120,7 +128,7 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
     }));
 
     if (householdId && currentUserId) {
-      sendBuzzToDB(householdId, currentUserId, senderName, partnerName);
+      sendBuzzToDB(householdId, currentUserId, senderName, partnerName, msgId);
     }
   },
 

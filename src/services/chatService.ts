@@ -6,14 +6,15 @@ export async function sendChatMessageToDB(
   senderId: string,
   senderName: string,
   content: string,
-  attachment?: Attachment
+  attachment?: Attachment,
+  msgId?: string
 ) {
   if (!householdId || householdId.startsWith('hh_')) return;
 
   const { data: authData } = await supabase.auth.getUser();
   const actualSenderId = authData?.user?.id || (senderId.startsWith('usr_') ? null : senderId);
 
-  const { error } = await supabase.from('chat_messages').insert({
+  const payload: any = {
     household_id: householdId,
     sender_id: actualSenderId,
     sender_name: senderName,
@@ -21,7 +22,13 @@ export async function sendChatMessageToDB(
     attachment_type: attachment?.type || null,
     attachment_title: attachment?.title || null,
     attachment_amount: attachment?.amount || null
-  });
+  };
+
+  if (msgId && !msgId.startsWith('msg-')) {
+    payload.id = msgId;
+  }
+
+  const { error } = await supabase.from('chat_messages').insert(payload);
 
   if (error) {
     console.warn('Supabase chat_messages insert error:', error);
@@ -32,7 +39,8 @@ export async function sendBuzzToDB(
   householdId: string,
   senderId: string,
   senderName: string,
-  partnerName: string
+  partnerName: string,
+  msgId?: string
 ) {
   if (!householdId || householdId.startsWith('hh_')) return;
 
@@ -41,12 +49,18 @@ export async function sendBuzzToDB(
   const { data: authData } = await supabase.auth.getUser();
   const actualSenderId = authData?.user?.id || (senderId.startsWith('usr_') ? null : senderId);
 
-  const { error } = await supabase.from('chat_messages').insert({
+  const payload: any = {
     household_id: householdId,
     sender_id: actualSenderId,
     sender_name: senderName,
     content: buzzText
-  });
+  };
+
+  if (msgId && !msgId.startsWith('msg-')) {
+    payload.id = msgId;
+  }
+
+  const { error } = await supabase.from('chat_messages').insert(payload);
 
   if (error) {
     console.warn('Supabase buzz message insert error:', error);

@@ -139,20 +139,33 @@ export default function App() {
           const newMsg = payload.new;
           const currentStore = useStore.getState();
           
-          if (!currentStore.chatMessages.some(m => m.id === newMsg.id)) {
-            const formattedMsg = {
-              id: newMsg.id,
-              senderName: newMsg.sender_name,
-              content: newMsg.content,
-              timestamp: new Date(newMsg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              attachment: newMsg.attachment_type ? {
-                type: newMsg.attachment_type,
-                title: newMsg.attachment_title || '',
-                amount: newMsg.attachment_amount ? Number(newMsg.attachment_amount) : undefined,
-                id: newMsg.attachment_ref_id || newMsg.id
-              } : undefined
-            };
+          const formattedMsg = {
+            id: newMsg.id,
+            senderName: newMsg.sender_name,
+            content: newMsg.content,
+            timestamp: new Date(newMsg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            attachment: newMsg.attachment_type ? {
+              type: newMsg.attachment_type,
+              title: newMsg.attachment_title || '',
+              amount: newMsg.attachment_amount ? Number(newMsg.attachment_amount) : undefined,
+              id: newMsg.attachment_ref_id || newMsg.id
+            } : undefined
+          };
 
+          const alreadyPresent = currentStore.chatMessages.some(m => m.id === newMsg.id);
+          if (alreadyPresent) {
+            return;
+          }
+
+          const optimisticIndex = currentStore.chatMessages.findIndex(
+            m => m.senderName === newMsg.sender_name && m.content === newMsg.content && (m.id.startsWith('msg-') || m.id.length < 32)
+          );
+
+          if (optimisticIndex !== -1) {
+            const updated = [...currentStore.chatMessages];
+            updated[optimisticIndex] = formattedMsg;
+            useStore.setState({ chatMessages: updated });
+          } else {
             useStore.setState({ chatMessages: [...currentStore.chatMessages, formattedMsg] });
           }
 
