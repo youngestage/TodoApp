@@ -877,4 +877,48 @@ export async function updateUserPresenceInDB(userId: string, isOnline: boolean) 
   }
 }
 
+export async function savePushSubscriptionToDB(
+  userId: string,
+  householdId: string,
+  subscription: any
+) {
+  if (!userId || userId.startsWith('usr_') || !subscription || !subscription.endpoint) return;
+
+  try {
+    const endpoint = subscription.endpoint;
+    const p256dh = subscription.keys?.p256dh || null;
+    const authKey = subscription.keys?.auth || null;
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null;
+
+    const { error } = await supabase.from('push_subscriptions').upsert(
+      {
+        user_id: userId,
+        household_id: householdId && !householdId.startsWith('hh_') ? householdId : null,
+        endpoint,
+        p256dh,
+        auth: authKey,
+        subscription,
+        user_agent: userAgent,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id,endpoint' }
+    );
+
+    if (error) {
+      console.warn('Error saving push subscription to DB:', error.message);
+    }
+  } catch (err) {
+    console.warn('Error saving push subscription:', err);
+  }
+}
+
+export async function deletePushSubscriptionInDB(userId: string) {
+  if (!userId || userId.startsWith('usr_')) return;
+  try {
+    await supabase.from('push_subscriptions').delete().eq('user_id', userId);
+  } catch (err) {
+    console.warn('Error deleting push subscription from DB:', err);
+  }
+}
+
 

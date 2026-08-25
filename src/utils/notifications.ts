@@ -1,7 +1,18 @@
+import { savePushSubscriptionToDB } from '../services';
+
 /**
- * PWA Push Notification Utility for Couples Studio
- * Uses ServiceWorkerRegistration.showNotification with /logo.svg icon.
+ * Converts VAPID Base64 string to Uint8Array for Web Push PushManager registration.
  */
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -25,6 +36,51 @@ export function isNotificationSupported(): boolean {
 export function getNotificationPermissionState(): NotificationPermission {
   if (typeof window === 'undefined' || !('Notification' in window)) return 'denied';
   return Notification.permission;
+}
+
+/**
+ * Registers Web Push subscription via ServiceWorker PushManager and saves endpoint to Supabase DB.
+ */
+export async function subscribeUserToWebPush(
+  userId: string,
+  householdId: string,
+  vapidPublicKey?: string
+): Promise<PushSubscription | null> {
+  if (!isNotificationSupported() || !userId || userId.startsWith('usr_')) return null;
+
+  try {
+    const granted = await requestNotificationPermission();
+    if (!granted) return null;
+
+    const registration = await navigator.serviceWorker.ready;
+    if (!registration || !registration.pushManager) {
+      console.warn('PushManager not supported on this ServiceWorker registration.');
+      return null;
+    }
+
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      const defaultKey = 'BEl62iUYgUivxIkv69yViEuiBIa-m9GYW52M5zEup08x35c9P4P2J83-J0z40J90vW87-2P0';
+      const keyToUse = vapidPublicKey || defaultKey;
+      const convertedKey = urlBase64ToUint8Array(keyToUse);
+
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey
+      });
+    }
+
+    if (subscription) {
+      const subJson = subscription.toJSON();
+      await savePushSubscriptionToDB(userId, householdId, subJson);
+    }
+
+    return subscription;
+  } catch (err) {
+    console.warn('Web Push subscription notice:', err);
+    return null;
+  }
 }
 
 export async function sendPushNotification(

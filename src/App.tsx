@@ -17,12 +17,19 @@ import { SettingsView } from './components/views/SettingsView';
 import { QuickActionSheet, ContextualThreadDrawer, NotificationsDrawer } from './components/drawers';
 import { SettleUpModal, QuickNoteModal, SettingsModal } from './components/modals';
 import { WelcomeWoosh } from './components/widgets';
-import { sendPushNotification } from './utils/notifications';
+import { sendPushNotification, subscribeUserToWebPush } from './utils/notifications';
 import { updateUserPresenceInDB } from './services';
 import { Lock, TickCircle, ArrowRight, CloseCircle } from 'iconsax-react';
 
 export default function App() {
   const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData, currentUser, partnerUser, setPartnerPresence } = useStore();
+
+  // Register Web Push subscription for background notifications when app is closed
+  useEffect(() => {
+    if (currentUser?.id && household?.id && !household.id.startsWith('hh_')) {
+      subscribeUserToWebPush(currentUser.id, household.id);
+    }
+  }, [currentUser?.id, household?.id]);
 
 
   // Supabase Realtime Presence & Live Online / Last Seen status
