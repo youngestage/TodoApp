@@ -69,8 +69,6 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
     const currentUserId = stateAny.currentUser?.id;
     const householdId = stateAny.household?.id;
 
-    sendPushNotification(`New Message from ${senderName}`, content);
-
     const msgId = typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
       : `msg-${Date.now()}`;
@@ -106,11 +104,6 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
     }
 
     const buzzText = `⚡ Buzzed ${partnerName}`;
-
-    sendPushNotification(
-      '⚡ Partner Buzz Alert!',
-      `${senderName} buzzed ${partnerName}! Tap to respond.`
-    );
 
     const msgId = typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()

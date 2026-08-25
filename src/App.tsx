@@ -152,8 +152,36 @@ export default function App() {
             } : undefined
           };
 
-          if (newMsg.sender_name !== currentStore.currentUser.name) {
-            sendPushNotification(`New Message from ${newMsg.sender_name}`, newMsg.content || '');
+          const isFromPartner = (newMsg.sender_id && newMsg.sender_id !== currentStore.currentUser?.id)
+            || (newMsg.sender_name !== currentStore.currentUser?.name);
+
+          const alreadyPresent = currentStore.chatMessages.some(m => m.id === newMsg.id);
+
+          if (!alreadyPresent) {
+            const optimisticIndex = currentStore.chatMessages.findIndex(
+              m => m.senderName === newMsg.sender_name && m.content === newMsg.content && (m.id.startsWith('msg-') || m.id.length < 32)
+            );
+
+            if (optimisticIndex !== -1) {
+              const updated = [...currentStore.chatMessages];
+              updated[optimisticIndex] = formattedMsg;
+              useStore.setState({ chatMessages: updated });
+            } else {
+              useStore.setState({ chatMessages: [...currentStore.chatMessages, formattedMsg] });
+            }
+          }
+
+          // Trigger push notification and haptic vibration ONLY when receiving message/buzz from partner
+          if (isFromPartner) {
+            const isBuzz = newMsg.content && newMsg.content.includes('Buzzed');
+            if (isBuzz) {
+              sendPushNotification('⚡ Partner Buzz Alert!', `${newMsg.sender_name} buzzed you! Tap to respond.`);
+              if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate([200, 100, 200, 100, 300]); } catch (e) {}
+              }
+            } else {
+              sendPushNotification(`New Message from ${newMsg.sender_name}`, newMsg.content || '');
+            }
           }
         } else {
           await fetchHouseholdData(household.id);
