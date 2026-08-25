@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Transaction } from '../../types';
 import {
@@ -7,9 +7,7 @@ import {
   Edit2,
   MessageText,
   Receipt2,
-  Trash,
-  TrendDown,
-  Wallet3
+  Trash
 } from 'iconsax-react';
 import { getUserAvatarUrl } from '../../utils/avatarUtils';
 

@@ -13,7 +13,7 @@ interface LogDebtPaymentModalProps {
 export const LogDebtPaymentModal: React.FC<LogDebtPaymentModalProps> = ({ debt, isOpen, onClose }) => {
   const { logDebtPayment, currentUser, partnerUser } = useStore();
   const [amount, setAmount] = useState(debt?.minimumPayment ? String(debt.minimumPayment) : '20000');
-  const [paidBy, setPaidBy] = useState<string>(currentUser?.name || 'Leslie');
+  const [paidBy, setPaidBy] = useState<string>(currentUser?.name || 'User');
 
   if (!isOpen || !debt) return null;
 
@@ -120,8 +120,8 @@ export const LogDebtPaymentModal: React.FC<LogDebtPaymentModalProps> = ({ debt, 
                 onChange={(e) => setPaidBy(e.target.value)}
                 className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
               >
-                <option value={currentUser?.name || 'Leslie'}>{currentUser?.name || 'Leslie'} (You)</option>
-                <option value={partnerUser?.name || 'Asa'}>{partnerUser?.name || 'Asa'} (Partner)</option>
+                <option value={currentUser?.name || 'User'}>{currentUser?.name || 'User'} (You)</option>
+                <option value={partnerUser?.name || 'Partner'}>{partnerUser?.name || 'Partner'} (Partner)</option>
               </select>
             </div>
 

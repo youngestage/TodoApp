@@ -21,7 +21,7 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
   const [amount, setAmount] = useState(editingStream?.amount ? String(editingStream.amount) : '');
   const [currency, setCurrency] = useState(editingStream?.currency || '₦');
   const [cadence, setCadence] = useState<IncomeCadence>(editingStream?.cadence || 'monthly');
-  const [earnedBy, setEarnedBy] = useState<'Leslie' | 'Asa' | 'Joint'>(editingStream?.earnedBy || 'Shared' as any);
+  const [earnedBy, setEarnedBy] = useState<string>(editingStream?.earnedBy || 'Shared');
   const [notes, setNotes] = useState(editingStream?.notes || '');
 
   const presets = [
@@ -210,9 +210,9 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
 
                 <button
                   type="button"
-                  onClick={() => setEarnedBy('Leslie')}
+                  onClick={() => setEarnedBy(userAName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    earnedBy === 'Leslie' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    earnedBy === userAName || earnedBy === currentUser?.name || (userAName === 'Leslie' && earnedBy === 'Leslie') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userAName}
@@ -220,9 +220,9 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
 
                 <button
                   type="button"
-                  onClick={() => setEarnedBy('Asa')}
+                  onClick={() => setEarnedBy(userBName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    earnedBy === 'Asa' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    earnedBy === userBName || earnedBy === partnerUser?.name || (userBName === 'Asa' && earnedBy === 'Asa') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userBName}

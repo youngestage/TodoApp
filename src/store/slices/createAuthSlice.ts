@@ -15,10 +15,10 @@ export interface AuthSlice {
   updateUserName: (name: string) => Promise<void>;
 }
 
-export const defaultUserLeslie: User = {
+export const defaultUser: User = {
   id: 'usr_me',
   name: 'Partner A',
-  avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=Leslie&backgroundColor=EF713F',
+  avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=UserA&backgroundColor=EF713F',
   isOnline: true,
   role: 'partner_a'
 };
@@ -69,7 +69,7 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set,
     localStorage.setItem('coupletodo_onboarding_completed', completed ? 'true' : 'false');
     set({ isOnboardingCompleted: completed });
   },
-  currentUser: defaultUserLeslie,
+  currentUser: defaultUser,
   updateUserAvatar: (url) => set((state) => ({
     currentUser: { ...state.currentUser, avatarUrl: url }
   })),

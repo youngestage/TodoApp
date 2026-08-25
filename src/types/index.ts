@@ -32,7 +32,7 @@ export interface Task {
   userACompleted: boolean;
   userBCompleted: boolean;
   completed: boolean;
-  assignedToName: 'Leslie' | 'Asa' | 'Both';
+  assignedToName: string;
   dueDate: string;
   priority: 'High' | 'Medium' | 'Low';
   linkedExpense?: {
@@ -61,7 +61,7 @@ export interface Transaction {
   amount: number;
   type: 'EXPENSE' | 'INCOME';
   category: BudgetCategoryType;
-  paidBy: 'Leslie' | 'Asa';
+  paidBy: string;
   account: string;
   isShared: boolean;
   date: string;
@@ -87,7 +87,7 @@ export interface RecurringBill {
   nextDueDate: string;
   dueDate?: string;
   dueDayNumber?: number;
-  paidBy: 'Leslie' | 'Asa' | 'Shared';
+  paidBy: string;
   splitType?: BillSplitType;
   splitDetails?: { partnerA: number; partnerB: number };
   paymentMethod?: BillPaymentMethod;
@@ -176,7 +176,7 @@ export interface DebtAccount {
   nextDueDate?: string;
   dueDate?: string;
   currency?: string;
-  paidBy: 'Leslie' | 'Asa' | 'Shared';
+  paidBy: string;
   isPrivate?: boolean;
   notes?: string;
   status: 'ACTIVE' | 'PAID_OFF';
@@ -252,7 +252,7 @@ export interface IncomeStream {
   amount: number;
   currency?: string;
   cadence: IncomeCadence;
-  earnedBy: 'Leslie' | 'Asa' | 'Joint';
+  earnedBy: string;
   notes?: string;
   status: 'ACTIVE' | 'PAUSED';
   createdAt?: string;

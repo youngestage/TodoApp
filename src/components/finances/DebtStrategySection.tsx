@@ -30,6 +30,9 @@ export const DebtStrategySection: React.FC = () => {
     partnerUser
   } = useStore();
 
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<DebtAccount | null>(null);
   const [loggingPaymentDebt, setLoggingPaymentDebt] = useState<DebtAccount | null>(null);
@@ -47,12 +50,26 @@ export const DebtStrategySection: React.FC = () => {
   const partnerAShared = Math.round(sharedTotal / 2);
   const partnerBShared = Math.round(sharedTotal / 2);
 
+  const isUserA = (name?: string) => {
+    if (!name) return false;
+    if (name === currentUser.name || name === userAName) return true;
+    if (userAName === 'Leslie' && name === 'Leslie') return true;
+    return false;
+  };
+
+  const isUserB = (name?: string) => {
+    if (!name) return false;
+    if (name === partnerUser.name || name === userBName) return true;
+    if (userBName === 'Asa' && name === 'Asa') return true;
+    return false;
+  };
+
   const userAIndivDebt = activeDebts
-    .filter(d => d.paidBy === currentUser.name || d.paidBy === 'Leslie')
+    .filter(d => d.paidBy !== 'Shared' && isUserA(d.paidBy))
     .reduce((acc, d) => acc + d.balance, 0);
 
   const userBIndivDebt = activeDebts
-    .filter(d => d.paidBy === partnerUser.name || d.paidBy === 'Asa')
+    .filter(d => d.paidBy !== 'Shared' && isUserB(d.paidBy))
     .reduce((acc, d) => acc + d.balance, 0);
 
   const indivTotal = userAIndivDebt + userBIndivDebt;
