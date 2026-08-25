@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getUserAvatarUrl } from '../../utils/avatarUtils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { SavingsGoal } from '../../types';
 import { calculateGoalPace } from '../../utils/savingsEngine';
@@ -14,11 +14,9 @@ import {
   Cup,
   Edit2,
   NotificationCircle,
-  TickCircle,
   Trash,
   TrendUp,
-  Award,
-  Wallet3
+  Award
 } from 'iconsax-react';
 
 export const SavingsGoalsSection: React.FC = () => {
@@ -58,15 +56,29 @@ export const SavingsGoalsSection: React.FC = () => {
   const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
   const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
 
+  const isUserA = (name?: string) => {
+    if (!name) return false;
+    if (name === currentUser?.name || name === userAName) return true;
+    if (userAName === 'Leslie' && name === 'Leslie') return true;
+    return false;
+  };
+
+  const isUserB = (name?: string) => {
+    if (!name) return false;
+    if (name === partnerUser?.name || name === userBName) return true;
+    if (userBName === 'Asa' && name === 'Asa') return true;
+    return false;
+  };
+
   let partnerASaved = 0;
   let partnerBSaved = 0;
 
   activeGoals.forEach((g) => {
     if (g.contributions && g.contributions.length > 0) {
       g.contributions.forEach((c) => {
-        if (c.contributorName === currentUser?.name || c.contributorName === 'Leslie' || c.contributorName === userAName) {
+        if (isUserA(c.contributorName)) {
           partnerASaved += c.amount;
-        } else if (c.contributorName === partnerUser?.name || c.contributorName === 'Asa' || c.contributorName === userBName) {
+        } else if (isUserB(c.contributorName)) {
           partnerBSaved += c.amount;
         } else {
           partnerASaved += c.amount / 2;

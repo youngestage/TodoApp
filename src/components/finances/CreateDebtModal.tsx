@@ -27,7 +27,7 @@ export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClos
   const [repaymentFrequency, setRepaymentFrequency] = useState<DebtRepaymentFrequency>(editingDebt?.repaymentFrequency || 'monthly');
   const [minimumPayment, setMinimumPayment] = useState(editingDebt?.minimumPayment ? String(editingDebt.minimumPayment) : '');
   const [nextDueDate, setNextDueDate] = useState(editingDebt?.nextDueDate || new Date().toISOString().split('T')[0]);
-  const [paidBy, setPaidBy] = useState<'Leslie' | 'Asa' | 'Shared'>(editingDebt?.paidBy || 'Shared');
+  const [paidBy, setPaidBy] = useState<string>(editingDebt?.paidBy || 'Shared');
   const [isPrivate, setIsPrivate] = useState(editingDebt?.isPrivate || false);
   const [notes, setNotes] = useState(editingDebt?.notes || '');
 
@@ -295,9 +295,9 @@ export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClos
 
                 <button
                   type="button"
-                  onClick={() => setPaidBy('Leslie')}
+                  onClick={() => setPaidBy(userAName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    paidBy === 'Leslie' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    paidBy === userAName || paidBy === currentUser?.name || (userAName === 'Leslie' && paidBy === 'Leslie') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userAName} Only
@@ -305,9 +305,9 @@ export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClos
 
                 <button
                   type="button"
-                  onClick={() => setPaidBy('Asa')}
+                  onClick={() => setPaidBy(userBName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    paidBy === 'Asa' ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    paidBy === userBName || paidBy === partnerUser?.name || (userBName === 'Asa' && paidBy === 'Asa') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userBName} Only

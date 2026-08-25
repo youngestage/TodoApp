@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { getUserAvatarUrl } from '../../utils/avatarUtils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { RecurringBill } from '../../types';
 import { formatFriendlyDate } from '../../utils/dateUtils';
@@ -31,6 +31,9 @@ export const RecurringBillsSection: React.FC = () => {
     partnerUser
   } = useStore();
 
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
+
   const [activeFilter, setActiveFilter] = useState<'All' | 'Shared' | 'Individual' | 'Paused'>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<RecurringBill | null>(null);
@@ -55,12 +58,26 @@ export const RecurringBillsSection: React.FC = () => {
   const partnerAShared = Math.round(sharedSpend / 2);
   const partnerBShared = Math.round(sharedSpend / 2);
 
+  const isUserA = (name?: string) => {
+    if (!name) return false;
+    if (name === currentUser.name || name === userAName) return true;
+    if (userAName === 'Leslie' && name === 'Leslie') return true;
+    return false;
+  };
+
+  const isUserB = (name?: string) => {
+    if (!name) return false;
+    if (name === partnerUser.name || name === userBName) return true;
+    if (userBName === 'Asa' && name === 'Asa') return true;
+    return false;
+  };
+
   const userAIndividualSpend = activeBills
-    .filter(b => b.paidBy === currentUser.name || b.paidBy === 'Leslie')
+    .filter(b => b.paidBy !== 'Shared' && isUserA(b.paidBy))
     .reduce((acc, b) => acc + b.amount, 0);
 
   const userBIndividualSpend = activeBills
-    .filter(b => b.paidBy === partnerUser.name || b.paidBy === 'Asa')
+    .filter(b => b.paidBy !== 'Shared' && isUserB(b.paidBy))
     .reduce((acc, b) => acc + b.amount, 0);
 
   const individualSpend = userAIndividualSpend + userBIndividualSpend;

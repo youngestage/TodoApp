@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { SavingsGoal } from '../../types';
-import { CloseCircle, Cup, TickCircle } from 'iconsax-react';
+import { CloseCircle, Cup } from 'iconsax-react';
 
 interface LogContributionModalProps {
   goal: SavingsGoal | null;
@@ -13,14 +13,13 @@ interface LogContributionModalProps {
 export const LogContributionModal: React.FC<LogContributionModalProps> = ({ goal, isOpen, onClose }) => {
   const { logSavingsContribution, currentUser, partnerUser } = useStore();
   const [amount, setAmount] = useState(goal?.suggestedContribution ? String(goal.suggestedContribution) : '50000');
-  const [contributorName, setContributorName] = useState<string>(currentUser?.name || 'Leslie');
+  const [contributorName, setContributorName] = useState<string>(currentUser?.name || 'User');
   const [note, setNote] = useState('');
 
   if (!isOpen || !goal) return null;
 
   const depositVal = parseFloat(amount) || 0;
   const currency = goal.currency || '₦';
-  const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,8 +117,8 @@ export const LogContributionModal: React.FC<LogContributionModalProps> = ({ goal
                 onChange={(e) => setContributorName(e.target.value)}
                 className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
               >
-                <option value={currentUser?.name || 'Leslie'}>{currentUser?.name || 'Leslie'} (You)</option>
-                <option value={partnerUser?.name || 'Asa'}>{partnerUser?.name || 'Asa'} (Partner)</option>
+                <option value={currentUser?.name || 'User'}>{currentUser?.name || 'User'} (You)</option>
+                <option value={partnerUser?.name || 'Partner'}>{partnerUser?.name || 'Partner'} (Partner)</option>
                 <option value="Household Pool">Household Joint Pool (Ajo Group)</option>
               </select>
             </div>

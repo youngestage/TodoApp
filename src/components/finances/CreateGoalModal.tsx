@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { GoalCategory, GoalCadence, GoalOwnership, SavingsGoal } from '../../types';
 import { calculateRequiredContribution } from '../../utils/savingsEngine';
-import { CloseCircle, Cup, DirectNotification, InfoCircle } from 'iconsax-react';
+import { CloseCircle, Cup, InfoCircle } from 'iconsax-react';
 
 interface CreateGoalModalProps {
   isOpen: boolean;

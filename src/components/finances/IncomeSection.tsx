@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { IncomeStream } from '../../types';
 import { CreateIncomeModal } from './CreateIncomeModal';
@@ -10,8 +10,7 @@ import {
   TickCircle,
   Trash,
   TrendUp,
-  Award,
-  Wallet3
+  Award
 } from 'iconsax-react';
 import { getUserAvatarUrl } from '../../utils/avatarUtils';
 
@@ -27,17 +26,17 @@ export const IncomeSection: React.FC = () => {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingStream, setEditingStream] = useState<IncomeStream | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'All' | 'Leslie' | 'Asa' | 'Joint'>('All');
+  const [activeFilter, setActiveFilter] = useState<string>('All');
 
   const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
   const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
 
   const filterTabs = [
     { id: 'All', label: 'All' },
-    { id: 'Leslie', label: userAName },
-    { id: 'Asa', label: userBName },
+    { id: userAName, label: userAName },
+    { id: userBName, label: userBName },
     { id: 'Joint', label: 'Joint' }
-  ] as const;
+  ];
 
   const currency = preferences?.currency || '₦';
 
@@ -46,12 +45,26 @@ export const IncomeSection: React.FC = () => {
   const activeStreams = incomeStreams.filter(i => i.status !== 'PAUSED');
   const totalMonthlyIncome = activeStreams.reduce((acc, i) => acc + i.amount, 0);
 
+  const isUserA = (name?: string) => {
+    if (!name) return false;
+    if (name === currentUser.name || name === userAName) return true;
+    if (userAName === 'Leslie' && name === 'Leslie') return true;
+    return false;
+  };
+
+  const isUserB = (name?: string) => {
+    if (!name) return false;
+    if (name === partnerUser.name || name === userBName) return true;
+    if (userBName === 'Asa' && name === 'Asa') return true;
+    return false;
+  };
+
   const partnerAIncome = activeStreams
-    .filter(i => i.earnedBy === currentUser?.name || i.earnedBy === userAName)
+    .filter(i => i.earnedBy !== 'Joint' && isUserA(i.earnedBy))
     .reduce((acc, i) => acc + i.amount, 0);
 
   const partnerBIncome = activeStreams
-    .filter(i => i.earnedBy === partnerUser?.name || i.earnedBy === userBName)
+    .filter(i => i.earnedBy !== 'Joint' && isUserB(i.earnedBy))
     .reduce((acc, i) => acc + i.amount, 0);
 
   const jointIncome = activeStreams
@@ -59,8 +72,8 @@ export const IncomeSection: React.FC = () => {
     .reduce((acc, i) => acc + i.amount, 0);
 
   const filteredStreams = activeStreams.filter(i => {
-    if (activeFilter === 'Leslie') return i.earnedBy === 'Leslie' || i.earnedBy === currentUser.name;
-    if (activeFilter === 'Asa') return i.earnedBy === 'Asa' || i.earnedBy === partnerUser.name;
+    if (activeFilter === userAName) return isUserA(i.earnedBy);
+    if (activeFilter === userBName) return isUserB(i.earnedBy);
     if (activeFilter === 'Joint') return i.earnedBy === 'Joint';
     return true;
   });
