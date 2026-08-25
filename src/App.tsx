@@ -62,8 +62,9 @@ export default function App() {
         if (payload.eventType === 'INSERT' && payload.new) {
           const newMsg = payload.new;
           const currentStore = useStore.getState();
-          
-          if (!currentStore.chatMessages.some(m => m.id === newMsg.id)) {
+          const alreadyExists = currentStore.chatMessages.some(m => m.id === newMsg.id);
+
+          if (!alreadyExists) {
             const formattedMsg = {
               id: newMsg.id,
               senderName: newMsg.sender_name,
@@ -77,7 +78,18 @@ export default function App() {
               } : undefined
             };
 
-            useStore.setState({ chatMessages: [...currentStore.chatMessages, formattedMsg] });
+            // Check if there is an optimistic temporary message (ID starting with 'msg-') from the same sender with matching content
+            const tempIndex = currentStore.chatMessages.findIndex(
+              m => m.id.startsWith('msg-') && m.senderName === newMsg.sender_name && m.content === newMsg.content
+            );
+
+            if (tempIndex !== -1) {
+              const updatedMessages = [...currentStore.chatMessages];
+              updatedMessages[tempIndex] = formattedMsg;
+              useStore.setState({ chatMessages: updatedMessages });
+            } else {
+              useStore.setState({ chatMessages: [...currentStore.chatMessages, formattedMsg] });
+            }
           }
 
           if (newMsg.sender_name !== currentStore.currentUser.name) {
