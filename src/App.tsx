@@ -343,7 +343,17 @@ export default function App() {
   const [passwordUpdated, setPasswordUpdated] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
+  const [isInitializingApp, setIsInitializingApp] = useState(true);
+
+  // Register Web Push subscription for background notifications when app is closed
   useEffect(() => {
+    if (currentUser?.id && household?.id && !household.id.startsWith('hh_')) {
+      subscribeUserToWebPush(currentUser.id, household.id);
+    }
+  }, [currentUser?.id, household?.id]);
+
+  useEffect(() => {
+    let isMounted = true;
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         setSession(session);
@@ -351,11 +361,12 @@ export default function App() {
         const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).maybeSingle();
         if (prof?.name) {
           useStore.setState((state) => ({
-            currentUser: { ...state.currentUser, name: prof.name }
+            currentUser: { ...state.currentUser, id: session.user.id, name: prof.name }
           }));
         }
         if (prof?.household_id) {
           await fetchHouseholdData(prof.household_id);
+          subscribeUserToWebPush(session.user.id, prof.household_id);
           setOnboardingCompleted(true);
           setCurrentView('dashboard');
         } else {
@@ -363,6 +374,10 @@ export default function App() {
           setCurrentView('onboarding');
         }
       }
+      if (isMounted) setIsInitializingApp(false);
+    }).catch((err) => {
+      console.warn('Auth getSession notice:', err);
+      if (isMounted) setIsInitializingApp(false);
     });
 
     if (window.location.hash.includes('type=recovery') || window.location.pathname.includes('reset-password')) {
@@ -376,11 +391,12 @@ export default function App() {
           const { data: prof } = await supabase.from('profiles').select('household_id, name').eq('id', session.user.id).maybeSingle();
           if (prof?.name) {
             useStore.setState((state) => ({
-              currentUser: { ...state.currentUser, name: prof.name }
+              currentUser: { ...state.currentUser, id: session.user.id, name: prof.name }
             }));
           }
           if (prof?.household_id) {
             await fetchHouseholdData(prof.household_id);
+            subscribeUserToWebPush(session.user.id, prof.household_id);
             setOnboardingCompleted(true);
             setCurrentView('dashboard');
           } else {
@@ -389,13 +405,15 @@ export default function App() {
           }
         }
       }
-      // When user clicks Password Reset Link in Email
       if (event === 'PASSWORD_RECOVERY') {
         setResetPasswordModalOpen(true);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Strict RBAC Route Guard: Lock main app routes until onboarding key flow is completed
@@ -449,6 +467,24 @@ export default function App() {
       default: return <DashboardView />;
     }
   };
+
+  if (isInitializingApp) {
+    return (
+      <div className="min-h-screen bg-[#FBF9F5] flex flex-col items-center justify-center space-y-4 p-6 select-none">
+        <motion.div
+          animate={{ scale: [0.95, 1.05, 0.95] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          className="w-16 h-16 rounded-3xl bg-[#EF713F] text-white flex items-center justify-center shadow-lg"
+        >
+          <img src="/logo.svg" alt="CoupleTODO" className="w-10 h-10 object-contain" />
+        </motion.div>
+        <div className="text-center space-y-1">
+          <h2 className="font-display text-lg font-bold text-[#231F1E]">Couples Studio</h2>
+          <p className="text-xs font-mono text-[#6B6560]">Syncing workspace & partner status...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#231F1E] text-[#231F1E] font-sans antialiased selection:bg-[#EF713F] selection:text-white flex flex-col overflow-x-hidden">

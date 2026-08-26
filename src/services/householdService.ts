@@ -882,7 +882,18 @@ export async function savePushSubscriptionToDB(
   householdId: string,
   subscription: any
 ) {
-  if (!userId || userId.startsWith('usr_') || !subscription || !subscription.endpoint) return;
+  let effectiveUserId = userId;
+
+  if (!effectiveUserId || effectiveUserId.startsWith('usr_')) {
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.id) {
+        effectiveUserId = data.user.id;
+      }
+    } catch (e) {}
+  }
+
+  if (!effectiveUserId || effectiveUserId.startsWith('usr_') || !subscription || !subscription.endpoint) return;
 
   try {
     const endpoint = subscription.endpoint;
@@ -892,7 +903,7 @@ export async function savePushSubscriptionToDB(
 
     const { error } = await supabase.from('push_subscriptions').upsert(
       {
-        user_id: userId,
+        user_id: effectiveUserId,
         household_id: householdId && !householdId.startsWith('hh_') ? householdId : null,
         endpoint,
         p256dh,
@@ -906,6 +917,8 @@ export async function savePushSubscriptionToDB(
 
     if (error) {
       console.warn('Error saving push subscription to DB:', error.message);
+    } else {
+      console.log('✅ Push subscription saved to DB for user:', effectiveUserId);
     }
   } catch (err) {
     console.warn('Error saving push subscription:', err);
