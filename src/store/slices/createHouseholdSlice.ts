@@ -9,6 +9,8 @@ import {
   updateHouseholdStartDateInDB
 } from '../../services';
 
+import { StoreState } from '../useStore';
+
 export interface HouseholdSlice {
   household: Household;
   partnerUser: User;
@@ -42,7 +44,7 @@ export const defaultHousehold: Household = {
   }
 };
 
-export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], HouseholdSlice> = (set, get) => ({
+export const createHouseholdSlice: StateCreator<StoreState, [], [], HouseholdSlice> = (set, get) => ({
   household: defaultHousehold,
   partnerUser: defaultWaitingPartner,
 
@@ -61,7 +63,7 @@ export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], Househol
     const sessionUserId = stateAny.session?.user?.id || stateAny.currentUser?.id;
     const data = await fetchHouseholdDataFromDB(householdId, sessionUserId);
     if (data) {
-      set((state: any) => ({
+      set({
         household: data.household,
         partnerUser: data.partnerUser,
         ...(data.currentUser ? { currentUser: data.currentUser } : {}),
@@ -73,8 +75,9 @@ export const createHouseholdSlice: StateCreator<HouseholdSlice, [], [], Househol
         savingsGoals: data.savingsGoals || [],
         incomeStreams: data.incomeStreams || [],
         chatMessages: data.chatMessages,
-        quickNotes: data.quickNotes
-      }));
+        quickNotes: data.quickNotes,
+        contextualComments: data.contextualComments || []
+      });
     }
   },
 

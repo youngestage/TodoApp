@@ -115,17 +115,18 @@ export const ChatView: React.FC = () => {
   contextualComments.forEach(comment => {
     if (!threadMap.has(comment.targetId)) {
       let itemTitle = 'Inline Discussion';
-      if (comment.targetType === 'TASK') {
+      const targetTypeUpper = comment.targetType ? comment.targetType.toUpperCase() : 'TASK';
+      if (targetTypeUpper === 'TASK') {
         const t = tasks.find(x => x.id === comment.targetId);
         if (t) itemTitle = t.title;
-      } else if (comment.targetType === 'TRANSACTION') {
+      } else if (targetTypeUpper === 'TRANSACTION') {
         const tx = transactions.find(x => x.id === comment.targetId);
         if (tx) itemTitle = tx.title;
       }
       threadMap.set(comment.targetId, {
         comments: [],
         itemTitle,
-        type: comment.targetType as any
+        type: targetTypeUpper as any
       });
     }
     threadMap.get(comment.targetId)!.comments.push(comment);

@@ -15,7 +15,10 @@ export const ContextualThreadDrawer: React.FC = () => {
   const [commentText, setCommentText] = useState('');
 
   const relevantComments = activeContextualThread
-    ? contextualComments.filter(c => c.targetId === activeContextualThread.id && c.targetType === activeContextualThread.type)
+    ? contextualComments.filter(
+        c => c.targetId === activeContextualThread.id &&
+             c.targetType.toUpperCase() === activeContextualThread.type.toUpperCase()
+      )
     : [];
 
   const handleSubmit = (e: React.FormEvent) => {
