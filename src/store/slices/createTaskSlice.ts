@@ -1,6 +1,5 @@
 import { StateCreator } from 'zustand';
 import { Task, TaskFolder } from '../../types';
-import { sendPushNotification } from '../../utils/notifications';
 import { StoreState } from '../useStore';
 import {
   saveTaskToDB,
@@ -42,10 +41,6 @@ export const createTaskSlice: StateCreator<StoreState, [], [], TaskSlice> = (set
 
         const completed = task.isJoint ? userACompleted && userBCompleted : (userACompleted || userBCompleted);
         const completedBy = completed ? user : undefined;
-
-        if (completed && !task.completed) {
-          sendPushNotification('Task Completed! 🎉', `"${task.title}" has been confirmed done by both partners!`);
-        }
 
         return {
           ...task,

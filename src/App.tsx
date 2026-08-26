@@ -107,6 +107,7 @@ export default function App() {
   }, [household.id, currentUser?.id, partnerUser?.id, setPartnerPresence]);
 
   // Supabase Realtime: Sync partner join & unpair events live & send push notification
+  // Supabase Realtime: Sync partner join, task, chat & financial events live with partner push notifications
   useEffect(() => {
     if (!household.id || household.id.startsWith('hh_')) return;
 
@@ -115,6 +116,14 @@ export default function App() {
         const leftName = payload?.payload?.userName || 'Your partner';
         sendPushNotification('Partner Left Space 💔', `${leftName} left the household workspace.`);
         await fetchHouseholdData(household.id);
+      })
+      .on('broadcast', { event: 'partner_nudge' }, (payload: any) => {
+        const currentStore = useStore.getState();
+        if (payload?.payload?.senderId !== currentStore.currentUser?.id) {
+          const senderName = payload?.payload?.senderName || 'Partner';
+          const goalName = payload?.payload?.goalName || 'Savings Goal';
+          sendPushNotification('Savings Goal Nudge! 🔔', `${senderName} sent a friendly reminder to contribute towards "${goalName}"`);
+        }
       })
       .on('postgres_changes', {
         event: '*',
@@ -198,22 +207,53 @@ export default function App() {
         event: '*',
         schema: 'public',
         table: 'tasks'
-      }, async () => {
+      }, async (payload: any) => {
         await fetchHouseholdData(household.id);
+        if (payload?.new) {
+          const currentStore = useStore.getState();
+          const currentUserId = currentStore.currentUser?.id;
+          const currentUserName = currentStore.currentUser?.name;
+          const partnerName = currentStore.partnerUser?.name || 'Partner';
+          const isFromPartner = (payload.new.user_id && payload.new.user_id !== currentUserId) ||
+                                (payload.new.assigned_to_name && payload.new.assigned_to_name !== currentUserName);
+
+          if (isFromPartner) {
+            if (payload.eventType === 'INSERT') {
+              sendPushNotification('New Task Added 📝', `${partnerName} added task: "${payload.new.title}"`);
+            } else if (payload.eventType === 'UPDATE' && payload.new.completed && !payload.old?.completed) {
+              sendPushNotification('Task Completed! 🎉', `"${payload.new.title}" confirmed completed by ${partnerName}!`);
+            }
+          }
+        }
       })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'transactions'
-      }, async () => {
+      }, async (payload: any) => {
         await fetchHouseholdData(household.id);
+        if (payload?.eventType === 'INSERT' && payload?.new) {
+          const currentStore = useStore.getState();
+          const currentUserId = currentStore.currentUser?.id;
+          const partnerName = currentStore.partnerUser?.name || 'Partner';
+          const isFromPartner = payload.new.user_id ? payload.new.user_id !== currentUserId : payload.new.paid_by !== currentStore.currentUser?.name;
+          if (isFromPartner) {
+            const typeLabel = payload.new.type === 'EXPENSE' ? 'expense' : 'income';
+            sendPushNotification('New Transaction Logged 💰', `${payload.new.paid_by || partnerName} logged ${typeLabel}: ${payload.new.title}`);
+          }
+        }
       })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'recurring_bills'
-      }, async () => {
+      }, async (payload: any) => {
         await fetchHouseholdData(household.id);
+        if (payload?.eventType === 'UPDATE' && payload?.new?.status === 'PAID' && payload?.old?.status !== 'PAID') {
+          const currentStore = useStore.getState();
+          const partnerName = currentStore.partnerUser?.name || 'Partner';
+          sendPushNotification('Recurring Bill Paid ⚡', `"${payload.new.title}" was paid by ${partnerName}!`);
+        }
       })
       .on('postgres_changes', {
         event: '*',
@@ -240,22 +280,47 @@ export default function App() {
         event: '*',
         schema: 'public',
         table: 'quick_notes'
-      }, async () => {
+      }, async (payload: any) => {
         await fetchHouseholdData(household.id);
+        if (payload?.eventType === 'INSERT' && payload?.new) {
+          const currentStore = useStore.getState();
+          const currentUserId = currentStore.currentUser?.id;
+          const partnerName = currentStore.partnerUser?.name || 'Partner';
+          const isFromPartner = payload.new.user_id ? payload.new.user_id !== currentUserId : payload.new.author_name !== currentStore.currentUser?.name;
+          if (isFromPartner) {
+            sendPushNotification('New Quick Note 📝', `${payload.new.author_name || partnerName}: "${payload.new.text}"`);
+          }
+        }
       })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'debt_payments'
-      }, async () => {
+      }, async (payload: any) => {
         await fetchHouseholdData(household.id);
+        if (payload?.eventType === 'INSERT' && payload?.new) {
+          const currentStore = useStore.getState();
+          const partnerName = currentStore.partnerUser?.name || 'Partner';
+          const isFromPartner = payload.new.paid_by !== currentStore.currentUser?.name;
+          if (isFromPartner) {
+            sendPushNotification('Debt Payment Logged 💰', `${payload.new.paid_by || partnerName} logged a debt payment!`);
+          }
+        }
       })
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'savings_contributions'
-      }, async () => {
+      }, async (payload: any) => {
         await fetchHouseholdData(household.id);
+        if (payload?.eventType === 'INSERT' && payload?.new) {
+          const currentStore = useStore.getState();
+          const partnerName = currentStore.partnerUser?.name || 'Partner';
+          const isFromPartner = payload.new.contributor_name !== currentStore.currentUser?.name;
+          if (isFromPartner) {
+            sendPushNotification('Savings Goal Deposit 🎯', `${payload.new.contributor_name || partnerName} added a savings deposit!`);
+          }
+        }
       })
       .on('postgres_changes', {
         event: '*',

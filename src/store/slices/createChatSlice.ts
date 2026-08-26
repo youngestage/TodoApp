@@ -1,6 +1,5 @@
 import { StateCreator } from 'zustand';
 import { ChatMessage, ContextualComment, QuickNote } from '../../types';
-import { sendPushNotification } from '../../utils/notifications';
 import { sendChatMessageToDB, sendBuzzToDB } from '../../services';
 import { StoreState } from '../useStore';
 
@@ -128,7 +127,6 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
   contextualComments: [],
   addContextualComment: (targetId, targetType, text) => set((state: StoreState) => {
     const senderName = state.currentUser?.name || 'Partner';
-    sendPushNotification('New Thread Comment', `${senderName}: ${text}`);
     const newComment: ContextualComment = {
       id: `comment-${Date.now()}`,
       targetId,
@@ -143,7 +141,6 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
   quickNotes: [],
   addQuickNote: (text) => set((state: StoreState) => {
     const senderName = state.currentUser?.name || 'Partner';
-    sendPushNotification('New Quick Note', text);
     const newNote: QuickNote = {
       id: `note-${Date.now()}`,
       text,

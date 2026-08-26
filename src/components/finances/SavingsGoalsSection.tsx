@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import { motion } from 'framer-motion';
+import { supabase } from '../../lib/supabase';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import { useStore } from '../../store/useStore';
 import { SavingsGoal } from '../../types';
 import { calculateGoalPace } from '../../utils/savingsEngine';
 import { formatFriendlyDate } from '../../utils/dateUtils';
-import { sendPushNotification } from '../../utils/notifications';
 import { CreateGoalModal } from './CreateGoalModal';
 import { LogContributionModal } from './LogContributionModal';
 import {
@@ -44,13 +44,19 @@ export const SavingsGoalsSection: React.FC = () => {
   const totalSavedAcrossGoals = activeGoals.reduce((acc, g) => acc + (g.currentAmount || 0), 0);
   const totalTargetAcrossGoals = activeGoals.reduce((acc, g) => acc + (g.targetAmount || 0), 0);
   const totalPacePerMonth = activeGoals.reduce((acc, g) => acc + (g.suggestedContribution || 0), 0);
-
   const handleNudgePartner = (goal: SavingsGoal) => {
-    const partnerName = partnerUser?.name || 'Partner';
-    sendPushNotification(
-      'Savings Goal Nudge! 🔔',
-      `${currentUser?.name} sent a friendly reminder to contribute towards "${goal.name}"`
-    );
+    const householdId = useStore.getState().household?.id;
+    if (householdId && !householdId.startsWith('hh_')) {
+      supabase.channel(`realtime_household_${householdId}`).send({
+        type: 'broadcast',
+        event: 'partner_nudge',
+        payload: {
+          senderId: currentUser?.id,
+          senderName: currentUser?.name || 'Partner',
+          goalName: goal.name
+        }
+      });
+    }
   };
 
   const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';

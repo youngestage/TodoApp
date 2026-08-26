@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useStore } from '../../../store/useStore';
 import { Avatar } from '../../ui/Avatar';
-import { sendPushNotification, getNotificationPermissionState, requestNotificationPermission } from '../../../utils/notifications';
+import { sendPushNotification, getNotificationPermissionState, requestNotificationPermission, subscribeUserToWebPush } from '../../../utils/notifications';
 import { Camera, Mobile, TickCircle, Copy, Danger } from 'iconsax-react';
 
 interface ProfileSettingsCardProps {
@@ -65,7 +65,6 @@ export const ProfileSettingsCard: React.FC<ProfileSettingsCardProps> = ({ onOpen
     reader.onload = (event) => {
       if (event.target?.result) {
         updateUserAvatar(event.target.result as string);
-        sendPushNotification('Profile Photo Updated', 'Your household profile photo has been refreshed!');
       }
     };
     reader.readAsDataURL(file);
@@ -75,8 +74,9 @@ export const ProfileSettingsCard: React.FC<ProfileSettingsCardProps> = ({ onOpen
     if (permissionState !== 'granted') {
       const granted = await requestNotificationPermission();
       setPermissionState(getNotificationPermissionState());
-      if (granted) {
-        sendPushNotification('Notifications Enabled', 'You will now receive alerts for tasks, expenses, and chat!');
+      if (granted && currentUser?.id && household?.id) {
+        await subscribeUserToWebPush(currentUser.id, household.id);
+        sendPushNotification('Notifications Enabled 🎉', 'You will now receive live alerts when your partner updates tasks, expenses, or chat!');
       }
     }
   };

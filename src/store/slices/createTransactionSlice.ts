@@ -10,7 +10,6 @@ import {
   BudgetCategoryType,
   AppPreferences
 } from '../../types';
-import { sendPushNotification } from '../../utils/notifications';
 import { calculateNextDueDate } from '../../utils/dateUtils';
 import { calculateEffectiveAPR } from '../../utils/debtEngine';
 import { calculateRequiredContribution } from '../../utils/savingsEngine';
@@ -374,13 +373,7 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
       commentsCount: 0
     };
 
-    set((state: StoreState) => {
-      sendPushNotification(
-        'New Transaction Logged',
-        `${tx.paidBy} logged ${tx.type === 'EXPENSE' ? 'expense' : 'income'}: ${tx.title} (${state.preferences.currency}${tx.amount})`
-      );
-      return { transactions: [newTx, ...state.transactions] };
-    });
+    set((state: StoreState) => ({ transactions: [newTx, ...state.transactions] }));
 
     const householdId = get().household?.id;
     if (householdId) saveTransactionToDB(newTx, householdId);
@@ -400,18 +393,15 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
     deleteTransactionFromDB(id);
   },
 
-  settleUpBalance: () => set((state: StoreState) => {
-    sendPushNotification('Settle-Up Complete! 💚', 'Household balance has been settled to ₦0.');
-    return {
-      household: {
-        ...state.household,
-        settleBalance: {
-          ...state.household.settleBalance,
-          amount: 0
-        }
+  settleUpBalance: () => set((state: StoreState) => ({
+    household: {
+      ...state.household,
+      settleBalance: {
+        ...state.household.settleBalance,
+        amount: 0
       }
-    };
-  }),
+    }
+  })),
 
   // RECURRING BILLS CRUD
   addRecurringBill: (bill) => {
@@ -501,11 +491,6 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
         b.id === id ? { ...b, ...updates } : b
       )
     }));
-
-    sendPushNotification(
-      'Recurring Bill Paid! ⚡',
-      `"${current.title}" (${current.amount.toLocaleString()}) logged. Next due: ${computedNextDueDate}`
-    );
 
     updateRecurringBillInDB(id, updates);
   },
@@ -603,13 +588,6 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
         date: 'Just now'
       });
     }
-
-    sendPushNotification(
-      isPaidOff ? 'Debt Paid Off! 🎉' : 'Debt Payment Logged 💰',
-      isPaidOff
-        ? `Congratulations! "${current.name}" has been 100% paid off!`
-        : `Logged ${amount.toLocaleString()} payment towards ${current.name}. Principal: ${principalPaid.toLocaleString()}`
-    );
 
     updateDebtAccountInDB(debtId, { balance: newBalance, status: isPaidOff ? 'PAID_OFF' : 'ACTIVE', nextDueDate: nextDueDateStr });
     logDebtPaymentInDB(paymentRecord);
@@ -711,13 +689,6 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
       })
     }));
 
-    sendPushNotification(
-      isCompleted ? 'Goal Completed! 🎉' : 'Savings Deposit Logged 🎯',
-      isCompleted
-        ? `Congratulations! "${goal.name}" target of ${goal.currency || '₦'}${goal.targetAmount.toLocaleString()} reached!`
-        : `${contributor} saved ${goal.currency || '₦'}${amount.toLocaleString()} towards ${goal.name}!`
-    );
-
     updateSavingsGoalInDB(goalId, { currentAmount: newCurrent, status: isCompleted ? 'COMPLETED' : 'ACTIVE' });
     logSavingsContributionInDB(contributionRecord);
   },
@@ -771,10 +742,5 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
       isShared: stream.earnedBy === 'Joint',
       date: 'Just now'
     });
-
-    sendPushNotification(
-      'Income Payout Logged 💵',
-      `Logged ${stream.currency || '₦'}${stream.amount.toLocaleString()} income from "${stream.title}"`
-    );
   }
 });

@@ -61,14 +61,20 @@ export async function subscribeUserToWebPush(
     let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
-      const defaultKey = 'BEl62iUYgUivxIkv69yViEuiBIa-m9GYW52M5zEup08x35c9P4P2J83-J0z40J90vW87-2P0';
-      const keyToUse = vapidPublicKey || defaultKey;
-      const convertedKey = urlBase64ToUint8Array(keyToUse);
+      const keyToUse =
+        vapidPublicKey ||
+        (import.meta.env && import.meta.env.VITE_VAPID_PUBLIC_KEY) ||
+        'BEl62iUYgUivxIkv69yViEuiBIa-m9GYW52M5zEup08x35c9P4P2J83-J0z40J90vW87-2P0';
 
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey
-      });
+      try {
+        const convertedKey = urlBase64ToUint8Array(keyToUse);
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey
+        });
+      } catch (subErr) {
+        console.warn('PushManager subscribe notice (VAPID key optional for local push):', subErr);
+      }
     }
 
     if (subscription) {
