@@ -15,6 +15,12 @@ import {
   TickCircle
 } from 'iconsax-react';
 
+const ReplyIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+  </svg>
+);
+
 export const ChatView: React.FC = () => {
   const {
     chatMessages,
@@ -42,6 +48,7 @@ export const ChatView: React.FC = () => {
     amount?: number;
     id: string;
   } | null>(null);
+  const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
 
   const [buzzCooldown, setBuzzCooldown] = useState(0);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
@@ -78,9 +85,22 @@ export const ChatView: React.FC = () => {
     const raw = inputText.trim();
     if (!raw && !selectedAttachment) return;
 
-    sendChatMessage(raw || (selectedAttachment ? `Attached: ${selectedAttachment.title}` : ''), selectedAttachment || undefined);
+    const replyToPayload = replyingToMessage
+      ? {
+          id: replyingToMessage.id,
+          senderName: replyingToMessage.senderName,
+          content: replyingToMessage.content
+        }
+      : undefined;
+
+    sendChatMessage(
+      raw || (selectedAttachment ? `Attached: ${selectedAttachment.title}` : ''),
+      selectedAttachment || undefined,
+      replyToPayload
+    );
     setInputText('');
     setSelectedAttachment(null);
+    setReplyingToMessage(null);
     setShowAttachMenu(false);
   };
 
@@ -301,6 +321,7 @@ export const ChatView: React.FC = () => {
               return (
                 <motion.div
                   key={msg.id}
+                  id={`msg-${msg.id}`}
                   initial={{ opacity: 0, y: 8, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   className={`flex items-end space-x-2 ${isMe ? 'justify-end' : 'justify-start'}`}
@@ -315,14 +336,50 @@ export const ChatView: React.FC = () => {
 
                   <div className={`max-w-[82%] sm:max-w-md space-y-1 ${isMe ? 'items-end' : 'items-start'}`}>
                     
-                    {/* Message Content Bubble */}
-                    <div
-                      className={`p-3.5 sm:p-4 rounded-3xl text-sm font-sans leading-relaxed border-0 ${
+                    {/* Draggable Message Content Bubble (Swipe Right to Reply) */}
+                    <motion.div
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 65 }}
+                      dragElastic={0.2}
+                      dragSnapToOrigin={true}
+                      onDragEnd={(_, info) => {
+                        if (info.offset.x > 35) {
+                          setReplyingToMessage(msg);
+                          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                            try { navigator.vibrate(25); } catch {}
+                          }
+                        }
+                      }}
+                      className={`p-3.5 sm:p-4 rounded-3xl text-sm font-sans leading-relaxed border-0 relative cursor-grab active:cursor-grabbing touch-pan-y ${
                         isMe
                           ? 'bg-[#EF713F] text-white rounded-br-md'
                           : 'bg-white text-[#231F1E] rounded-bl-md shadow-xs'
                       }`}
                     >
+                      {/* Quoted Message Reply Box */}
+                      {msg.replyTo && (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const targetEl = document.getElementById(`msg-${msg.replyTo?.id}`);
+                            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }}
+                          className={`mb-2 p-2 rounded-2xl text-xs font-sans border-l-3 cursor-pointer transition-all ${
+                            isMe
+                              ? 'bg-black/20 text-white border-white/90 hover:bg-black/30'
+                              : 'bg-[#FBF9F5] text-[#231F1E] border-[#EF713F] hover:bg-gray-100'
+                          }`}
+                          title="Click to view original message"
+                        >
+                          <span className={`font-bold block text-[10px] ${isMe ? 'text-white/90' : 'text-[#EF713F]'}`}>
+                            Replying to {msg.replyTo.senderName}
+                          </span>
+                          <span className="truncate block text-[11px] opacity-90 font-medium">
+                            {msg.replyTo.content}
+                          </span>
+                        </div>
+                      )}
+
                       <p>{msg.content}</p>
 
                       {/* Attachment Card (Clickable to jump directly to Tasks or Budget view) */}
@@ -350,7 +407,7 @@ export const ChatView: React.FC = () => {
                             )}
                             <div className="truncate">
                               <span className="font-semibold block truncate">{msg.attachment.title}</span>
-                              <span className="text-[10px] opacity-80 font-sans">Tap to discuss inline 💬</span>
+                              <span className="text-[10px] opacity-80 font-sans">Tap to view item ↗</span>
                             </div>
                           </div>
 
@@ -361,7 +418,7 @@ export const ChatView: React.FC = () => {
                           )}
                         </div>
                       )}
-                    </div>
+                    </motion.div>
 
                     {/* Timestamp & Read Indicator */}
                     {showTimestamp && (
@@ -383,6 +440,39 @@ export const ChatView: React.FC = () => {
           {/* Full Chat Input Bar */}
           <div className="bg-white p-3 sm:p-4 border-0 shadow-lg shrink-0 z-10 space-y-2 max-w-4xl w-full mx-auto sm:rounded-t-3xl">
             
+            {/* Reply Draft Banner (WhatsApp / Instagram Style) */}
+            <AnimatePresence>
+              {replyingToMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: 6, height: 0 }}
+                  className="flex items-center justify-between bg-[#FBF9F5] p-2.5 rounded-2xl text-xs font-sans text-[#231F1E] border-l-4 border-[#EF713F] shadow-xs"
+                >
+                  <div className="flex items-center space-x-2 truncate">
+                    <ReplyIcon className="w-4 h-4 text-[#EF713F] shrink-0" />
+                    <div className="truncate">
+                      <span className="font-bold block text-[11px] text-[#EF713F]">
+                        Replying to {replyingToMessage.senderName}
+                      </span>
+                      <span className="truncate block text-[11px] text-[#6B6560]">
+                        {replyingToMessage.content}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setReplyingToMessage(null)}
+                    className="text-gray-400 hover:text-red-500 border-0 bg-transparent cursor-pointer p-1 font-bold text-xs"
+                    title="Cancel reply"
+                  >
+                    ✕
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Attachment Preview Draft Badge */}
             {selectedAttachment && (
               <div className="flex items-center justify-between bg-[#FBF9F5] p-2.5 rounded-2xl text-xs font-mono text-[#231F1E] border border-gray-200/80">

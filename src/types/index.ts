@@ -113,6 +113,11 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   attachment?: Attachment;
+  replyTo?: {
+    id: string;
+    senderName: string;
+    content: string;
+  };
 }
 
 export interface ContextualComment {

@@ -143,6 +143,13 @@ export async function fetchHouseholdDataFromDB(
             amount: m.attachment_amount ? Number(m.attachment_amount) : undefined,
             id: m.attachment_ref_id || m.id
           }
+        : undefined,
+      replyTo: m.reply_to_id
+        ? {
+            id: m.reply_to_id,
+            senderName: m.reply_to_sender_name || 'Partner',
+            content: m.reply_to_content || ''
+          }
         : undefined
     }));
 

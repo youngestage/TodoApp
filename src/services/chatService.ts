@@ -7,7 +7,8 @@ export async function sendChatMessageToDB(
   senderName: string,
   content: string,
   attachment?: Attachment,
-  msgId?: string
+  msgId?: string,
+  replyTo?: { id: string; senderName: string; content: string }
 ) {
   if (!householdId || householdId.startsWith('hh_')) return;
 
@@ -21,7 +22,10 @@ export async function sendChatMessageToDB(
     content,
     attachment_type: attachment?.type || null,
     attachment_title: attachment?.title || null,
-    attachment_amount: attachment?.amount || null
+    attachment_amount: attachment?.amount || null,
+    reply_to_id: replyTo?.id || null,
+    reply_to_sender_name: replyTo?.senderName || null,
+    reply_to_content: replyTo?.content || null
   };
 
   if (msgId && !msgId.startsWith('msg-')) {

@@ -28,7 +28,7 @@ export interface ChatSlice {
   closeContextualThread: () => void;
 
   chatMessages: ChatMessage[];
-  sendChatMessage: (content: string, attachment?: ChatMessage['attachment']) => void;
+  sendChatMessage: (content: string, attachment?: ChatMessage['attachment'], replyTo?: ChatMessage['replyTo']) => void;
   sendBuzz: () => void;
 
   contextualComments: ContextualComment[];
@@ -63,7 +63,7 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
   closeContextualThread: () => set({ activeContextualThread: null }),
 
   chatMessages: [],
-  sendChatMessage: (content, attachment) => {
+  sendChatMessage: (content, attachment, replyTo) => {
     const stateAny: any = get();
     const senderName = stateAny.currentUser?.name || 'Partner';
     const currentUserId = stateAny.currentUser?.id;
@@ -78,7 +78,8 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
       senderName,
       content,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      attachment
+      attachment,
+      replyTo
     };
 
     set((s: StoreState) => ({
@@ -86,7 +87,7 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
     }));
 
     if (householdId && currentUserId) {
-      sendChatMessageToDB(householdId, currentUserId, senderName, content, attachment, msgId);
+      sendChatMessageToDB(householdId, currentUserId, senderName, content, attachment, msgId, replyTo);
       sendBackgroundPushToPartner(
         householdId,
         currentUserId,
