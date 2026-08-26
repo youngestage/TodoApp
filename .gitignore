@@ -7,3 +7,6 @@ dist-ssr
 .idea
 .vscode
 *.log
+.env
+.env.*
+!.env.example

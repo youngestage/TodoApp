@@ -16,18 +16,31 @@ import { SettingsView } from './components/views/SettingsView';
 
 import { QuickActionSheet, ContextualThreadDrawer, NotificationsDrawer } from './components/drawers';
 import { SettleUpModal, QuickNoteModal, SettingsModal } from './components/modals';
-import { WelcomeWoosh } from './components/widgets';
-import { sendPushNotification, subscribeUserToWebPush } from './utils/notifications';
+import { WelcomeWoosh, InstallPromptBanner } from './components/widgets';
+import {
+  sendPushNotification,
+  sendBackgroundPushToPartner,
+  NOTIFICATION_TAGS
+} from './utils/notifications';
 import { updateUserPresenceInDB } from './services';
 import { Lock, TickCircle, ArrowRight, CloseCircle } from 'iconsax-react';
 
 export default function App() {
   const { currentView, setCurrentView, setSession, isOnboardingCompleted, isNotificationsOpen, setOnboardingCompleted, household, fetchHouseholdData, currentUser, partnerUser, setPartnerPresence } = useStore();
 
-  // Register Web Push subscription for background notifications when app is closed
+  // Register Web Push subscription for background notifications.
+  // NOTE: iOS requires this via a user gesture (Settings page toggle).
+  // Here we only auto-subscribe on Android/desktop where auto-prompt works.
   useEffect(() => {
     if (currentUser?.id && household?.id && !household.id.startsWith('hh_')) {
-      subscribeUserToWebPush(currentUser.id, household.id);
+      const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+      // On iOS, only auto-subscribe if installed as standalone PWA
+      if (!isIOSDevice || isStandalone) {
+        import('./utils/notifications').then(({ subscribeUserToWebPush }) => {
+          subscribeUserToWebPush(currentUser.id, household.id);
+        });
+      }
     }
   }, [currentUser?.id, household?.id]);
 
@@ -114,15 +127,29 @@ export default function App() {
     const channel = supabase.channel(`realtime_household_${household.id}`)
       .on('broadcast', { event: 'partner_left' }, async (payload: any) => {
         const leftName = payload?.payload?.userName || 'Your partner';
-        sendPushNotification('Partner Left Space 💔', `${leftName} left the household workspace.`);
+        sendPushNotification(
+          'Partner Left Space 💔',
+          `${leftName} left the household workspace.`,
+          { tag: NOTIFICATION_TAGS.PARTNER_LEFT }
+        );
         await fetchHouseholdData(household.id);
       })
-      .on('broadcast', { event: 'partner_nudge' }, (payload: any) => {
+      .on('broadcast', { event: 'partner_nudge' }, async (payload: any) => {
         const currentStore = useStore.getState();
         if (payload?.payload?.senderId !== currentStore.currentUser?.id) {
           const senderName = payload?.payload?.senderName || 'Partner';
           const goalName = payload?.payload?.goalName || 'Savings Goal';
-          sendPushNotification('Savings Goal Nudge! 🔔', `${senderName} sent a friendly reminder to contribute towards "${goalName}"`);
+          const title = 'Savings Goal Nudge! 🔔';
+          const body = `${senderName} sent a friendly reminder to contribute towards "${goalName}"`;
+          sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.SAVINGS_NUDGE });
+          sendBackgroundPushToPartner(
+            household.id,
+            currentStore.currentUser?.id || '',
+            title,
+            body,
+            '/budget',
+            NOTIFICATION_TAGS.SAVINGS_NUDGE
+          );
         }
       })
       .on('postgres_changes', {
@@ -134,7 +161,11 @@ export default function App() {
 
         if (payload.eventType === 'INSERT') {
           const partnerName = payload.new?.name || 'Partner';
-          sendPushNotification('Partner Joined Space! 🎉', `${partnerName} connected to your workspace!`);
+          sendPushNotification(
+            'Partner Joined Space! 🎉',
+            `${partnerName} connected to your workspace!`,
+            { tag: NOTIFICATION_TAGS.PARTNER_JOINED }
+          );
         }
       })
       .on('postgres_changes', {
@@ -191,12 +222,32 @@ export default function App() {
           if (isFromPartner) {
             const isBuzz = newMsg.content && newMsg.content.includes('Buzzed');
             if (isBuzz) {
-              sendPushNotification('⚡ Partner Buzz Alert!', `${newMsg.sender_name} buzzed you! Tap to respond.`);
+              const title = '⚡ Partner Buzz Alert!';
+              const body = `${newMsg.sender_name} buzzed you! Tap to respond.`;
+              sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.CHAT_BUZZ, requireInteraction: true });
+              sendBackgroundPushToPartner(
+                household.id,
+                currentStore.currentUser?.id || '',
+                title,
+                body,
+                '/chat',
+                NOTIFICATION_TAGS.CHAT_BUZZ
+              );
               if (typeof window !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate([200, 100, 200, 100, 300]); } catch (e) {}
               }
             } else {
-              sendPushNotification(`New Message from ${newMsg.sender_name}`, newMsg.content || '');
+              const title = `💬 ${newMsg.sender_name}`;
+              const body = newMsg.content || '';
+              sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.CHAT_MESSAGE });
+              sendBackgroundPushToPartner(
+                household.id,
+                currentStore.currentUser?.id || '',
+                title,
+                body,
+                '/chat',
+                NOTIFICATION_TAGS.CHAT_MESSAGE
+              );
             }
           }
         } else {
@@ -219,9 +270,29 @@ export default function App() {
 
           if (isFromPartner) {
             if (payload.eventType === 'INSERT') {
-              sendPushNotification('New Task Added 📝', `${partnerName} added task: "${payload.new.title}"`);
+              const title = '📝 New Task Added';
+              const body = `${partnerName} added: "${payload.new.title}"`;
+              sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.TASK_ADD });
+              sendBackgroundPushToPartner(
+                household.id,
+                currentUserId || '',
+                title,
+                body,
+                '/tasks',
+                NOTIFICATION_TAGS.TASK_ADD
+              );
             } else if (payload.eventType === 'UPDATE' && payload.new.completed && !payload.old?.completed) {
-              sendPushNotification('Task Completed! 🎉', `"${payload.new.title}" confirmed completed by ${partnerName}!`);
+              const title = '✅ Task Completed!';
+              const body = `"${payload.new.title}" was completed by ${partnerName}`;
+              sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.TASK_COMPLETE });
+              sendBackgroundPushToPartner(
+                household.id,
+                currentUserId || '',
+                title,
+                body,
+                '/tasks',
+                NOTIFICATION_TAGS.TASK_COMPLETE
+              );
             }
           }
         }
@@ -239,7 +310,18 @@ export default function App() {
           const isFromPartner = payload.new.user_id ? payload.new.user_id !== currentUserId : payload.new.paid_by !== currentStore.currentUser?.name;
           if (isFromPartner) {
             const typeLabel = payload.new.type === 'EXPENSE' ? 'expense' : 'income';
-            sendPushNotification('New Transaction Logged 💰', `${payload.new.paid_by || partnerName} logged ${typeLabel}: ${payload.new.title}`);
+            const paidBy = payload.new.paid_by || partnerName;
+            const title = `💰 ${typeLabel === 'expense' ? 'Expense' : 'Income'} Logged`;
+            const body = `${paidBy} logged ${typeLabel}: "${payload.new.title}"`;
+            sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.TRANSACTION });
+            sendBackgroundPushToPartner(
+              household.id,
+              currentUserId || '',
+              title,
+              body,
+              '/budget',
+              NOTIFICATION_TAGS.TRANSACTION
+            );
           }
         }
       })
@@ -249,11 +331,22 @@ export default function App() {
         table: 'recurring_bills'
       }, async (payload: any) => {
         await fetchHouseholdData(household.id);
-        if (payload?.eventType === 'UPDATE' && payload?.new?.status === 'PAID' && payload?.old?.status !== 'PAID') {
-          const currentStore = useStore.getState();
-          const partnerName = currentStore.partnerUser?.name || 'Partner';
-          sendPushNotification('Recurring Bill Paid ⚡', `"${payload.new.title}" was paid by ${partnerName}!`);
-        }
+          if (payload?.eventType === 'UPDATE' && payload?.new?.status === 'PAID' && payload?.old?.status !== 'PAID') {
+            const currentStore = useStore.getState();
+            const currentUserId = currentStore.currentUser?.id;
+            const partnerName = currentStore.partnerUser?.name || 'Partner';
+            const title = '🧾 Bill Paid!';
+            const body = `"${payload.new.title}" was marked paid by ${partnerName}`;
+            sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.RECURRING_BILL });
+            sendBackgroundPushToPartner(
+              household.id,
+              currentUserId || '',
+              title,
+              body,
+              '/budget',
+              NOTIFICATION_TAGS.RECURRING_BILL
+            );
+          }
       })
       .on('postgres_changes', {
         event: '*',
@@ -288,7 +381,17 @@ export default function App() {
           const partnerName = currentStore.partnerUser?.name || 'Partner';
           const isFromPartner = payload.new.user_id ? payload.new.user_id !== currentUserId : payload.new.author_name !== currentStore.currentUser?.name;
           if (isFromPartner) {
-            sendPushNotification('New Quick Note 📝', `${payload.new.author_name || partnerName}: "${payload.new.text}"`);
+            const title = '📓 New Quick Note';
+            const body = `${payload.new.author_name || partnerName}: "${payload.new.text}"`;
+            sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.QUICK_NOTE });
+            sendBackgroundPushToPartner(
+              household.id,
+              currentUserId || '',
+              title,
+              body,
+              '/',
+              NOTIFICATION_TAGS.QUICK_NOTE
+            );
           }
         }
       })
@@ -300,10 +403,21 @@ export default function App() {
         await fetchHouseholdData(household.id);
         if (payload?.eventType === 'INSERT' && payload?.new) {
           const currentStore = useStore.getState();
+          const currentUserId = currentStore.currentUser?.id;
           const partnerName = currentStore.partnerUser?.name || 'Partner';
           const isFromPartner = payload.new.paid_by !== currentStore.currentUser?.name;
           if (isFromPartner) {
-            sendPushNotification('Debt Payment Logged 💰', `${payload.new.paid_by || partnerName} logged a debt payment!`);
+            const title = '💳 Debt Payment Made';
+            const body = `${payload.new.paid_by || partnerName} made a debt payment`;
+            sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.DEBT_PAYMENT });
+            sendBackgroundPushToPartner(
+              household.id,
+              currentUserId || '',
+              title,
+              body,
+              '/budget',
+              NOTIFICATION_TAGS.DEBT_PAYMENT
+            );
           }
         }
       })
@@ -315,10 +429,21 @@ export default function App() {
         await fetchHouseholdData(household.id);
         if (payload?.eventType === 'INSERT' && payload?.new) {
           const currentStore = useStore.getState();
+          const currentUserId = currentStore.currentUser?.id;
           const partnerName = currentStore.partnerUser?.name || 'Partner';
           const isFromPartner = payload.new.contributor_name !== currentStore.currentUser?.name;
           if (isFromPartner) {
-            sendPushNotification('Savings Goal Deposit 🎯', `${payload.new.contributor_name || partnerName} added a savings deposit!`);
+            const title = '🎯 Savings Deposit Made';
+            const body = `${payload.new.contributor_name || partnerName} added to a savings goal!`;
+            sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.SAVINGS_DEPOSIT });
+            sendBackgroundPushToPartner(
+              household.id,
+              currentUserId || '',
+              title,
+              body,
+              '/budget',
+              NOTIFICATION_TAGS.SAVINGS_DEPOSIT
+            );
           }
         }
       })
@@ -345,10 +470,16 @@ export default function App() {
 
   const [isInitializingApp, setIsInitializingApp] = useState(true);
 
-  // Register Web Push subscription for background notifications when app is closed
+  // Register Web Push for auto-subscribe on non-iOS devices (iOS uses Settings toggle)
   useEffect(() => {
     if (currentUser?.id && household?.id && !household.id.startsWith('hh_')) {
-      subscribeUserToWebPush(currentUser.id, household.id);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+      if (!isIOS || isStandalone) {
+        import('./utils/notifications').then(({ subscribeUserToWebPush }) => {
+          subscribeUserToWebPush(currentUser.id, household.id);
+        });
+      }
     }
   }, [currentUser?.id, household?.id]);
 
@@ -366,7 +497,14 @@ export default function App() {
         }
         if (prof?.household_id) {
           await fetchHouseholdData(prof.household_id);
-          subscribeUserToWebPush(session.user.id, prof.household_id);
+          // Auto-subscribe for non-iOS (iOS needs user gesture via Settings toggle)
+          const isIOSCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+          const isStandaloneCheck = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+          if (!isIOSCheck || isStandaloneCheck) {
+            import('./utils/notifications').then(({ subscribeUserToWebPush }) => {
+              subscribeUserToWebPush(session.user.id, prof.household_id);
+            });
+          }
           setOnboardingCompleted(true);
           setCurrentView('dashboard');
         } else {
@@ -396,7 +534,14 @@ export default function App() {
           }
           if (prof?.household_id) {
             await fetchHouseholdData(prof.household_id);
-            subscribeUserToWebPush(session.user.id, prof.household_id);
+            // Auto-subscribe for non-iOS (iOS needs user gesture)
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+            if (!isIOS || isStandalone) {
+              import('./utils/notifications').then(({ subscribeUserToWebPush }) => {
+                subscribeUserToWebPush(session.user.id, prof.household_id);
+              });
+            }
             setOnboardingCompleted(true);
             setCurrentView('dashboard');
           } else {
@@ -491,6 +636,9 @@ export default function App() {
 
       {/* Typewriter & Color Woosh App Entrance Experience */}
       <WelcomeWoosh />
+
+      {/* iOS Install Prompt Banner (only shows when not installed) */}
+      <InstallPromptBanner />
 
       {/* App Workspace Canvas */}
       <motion.div
