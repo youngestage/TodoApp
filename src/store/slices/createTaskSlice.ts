@@ -37,11 +37,24 @@ export const createTaskSlice: StateCreator<StoreState, [], [], TaskSlice> = (set
       const updatedTasks = state.tasks.map((task: Task) => {
         if (task.id !== taskId) return task;
 
-        const isUserA = user === 'Leslie' || user === 'Partner A' || user === state.currentUser?.name;
+        const currentName = state.currentUser?.name || '';
+        const partnerName = state.partnerUser?.name || '';
+        const sortedNames = [currentName, partnerName].filter(Boolean).sort();
+        
+        if (!task.isJoint) {
+          const completed = !task.completed;
+          return {
+            ...task,
+            completed,
+            completedBy: completed ? user : undefined
+          };
+        }
+
+        const isUserA = user === sortedNames[0];
         const userACompleted = isUserA ? !task.userACompleted : task.userACompleted;
         const userBCompleted = !isUserA ? !task.userBCompleted : task.userBCompleted;
 
-        const completed = task.isJoint ? userACompleted && userBCompleted : (userACompleted || userBCompleted);
+        const completed = userACompleted && userBCompleted;
         const completedBy = completed ? user : undefined;
 
         return {

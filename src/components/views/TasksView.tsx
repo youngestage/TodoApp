@@ -30,6 +30,7 @@ export const TasksView: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Record<string, boolean>>({});
   const [newSubTaskTitles, setNewSubTaskTitles] = useState<Record<string, string>>({});
+  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'complete'; taskId: string, user?: string } | null>(null);
 
   const handleAddNewTask = () => {
     setQuickActionTab('task');
@@ -154,6 +155,9 @@ export const TasksView: React.FC = () => {
             const subTasks = task.subTasks || [];
             const completedSubCount = subTasks.filter(st => st.completed).length;
 
+            const assignedTo = task.assignedToName || currentUser.name;
+            const isMyTask = assignedTo === currentUser.name || assignedTo === 'Both' || assignedTo === 'Anyone';
+
             return (
               <motion.div
                 key={task.id}
@@ -171,77 +175,83 @@ export const TasksView: React.FC = () => {
                     {/* Dual Partner Avatar Check Pills */}
                     <div className="flex items-center space-x-1.5 shrink-0 pt-0.5">
                       {task.isJoint ? (
-                        <>
-                          {/* Partner A Check Button (User A) */}
-                          <button
-                            onClick={() => {
-                              if (currentUser.name === 'Leslie' || currentUser.name === 'Partner A' || !partnerUser.name || currentUser.name !== partnerUser.name) {
-                                toggleJointTaskTap(task.id, currentUser.name);
-                              }
-                            }}
-                            disabled={currentUser.name === partnerUser.name && partnerUser.name !== ''}
-                            className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
-                              currentUser.name === partnerUser.name ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                            } ${
-                              task.userACompleted
-                                ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
-                                : 'border-gray-200 opacity-60 hover:opacity-100'
-                            }`}
-                            title={currentUser.name === partnerUser.name ? `${currentUser.name} cannot check partner's side` : `Your Check`}
-                          >
-                            <img 
-                              src={getUserAvatar(currentUser.name)} 
-                              alt={currentUser.name} 
-                              className="w-full h-full rounded-full object-cover" 
-                            />
-                            {task.userACompleted && (
-                              <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                                ✓
-                              </div>
-                            )}
-                          </button>
+                        (() => {
+                          const sortedNames = [currentUser.name, partnerUser.name].filter(Boolean).sort();
+                          const userAName = sortedNames[0] || 'Partner A';
+                          const userBName = sortedNames[1] || 'Partner B';
 
-                          {/* Partner B Check Button (User B) */}
-                          <button
-                            onClick={() => {
-                              if (currentUser.name === partnerUser.name) {
-                                toggleJointTaskTap(task.id, partnerUser.name);
-                              }
-                            }}
-                            disabled={currentUser.name !== partnerUser.name}
-                            className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
-                              currentUser.name !== partnerUser.name ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-                            } ${
-                              task.userBCompleted
-                                ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
-                                : 'border-gray-200 opacity-60 hover:opacity-100'
-                            }`}
-                            title={currentUser.name !== partnerUser.name ? `Only ${partnerUser.name} can check their side` : `${partnerUser.name}'s Check`}
-                          >
-                            <img 
-                              src={getUserAvatar(partnerUser.name)} 
-                              alt={partnerUser.name} 
-                              className="w-full h-full rounded-full object-cover" 
-                            />
-                            {task.userBCompleted && (
-                              <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                                ✓
-                              </div>
-                            )}
-                          </button>
-                        </>
+                          return (
+                            <>
+                              {/* Partner A Check Button */}
+                              <button
+                                onClick={() => {
+                                  if (currentUser.name === userAName) {
+                                    setConfirmAction({ type: 'complete', taskId: task.id, user: userAName });
+                                  }
+                                }}
+                                disabled={currentUser.name !== userAName}
+                                className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
+                                  currentUser.name !== userAName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                                } ${
+                                  task.userACompleted
+                                    ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
+                                    : 'border-gray-200 opacity-60 hover:opacity-100'
+                                }`}
+                                title={currentUser.name !== userAName ? `Only ${userAName} can check their side` : `Your Check`}
+                              >
+                                <img 
+                                  src={getUserAvatar(userAName)} 
+                                  alt={userAName} 
+                                  className="w-full h-full rounded-full object-cover" 
+                                />
+                                {task.userACompleted && (
+                                  <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                    ✓
+                                  </div>
+                                )}
+                              </button>
+
+                              {/* Partner B Check Button */}
+                              <button
+                                onClick={() => {
+                                  if (currentUser.name === userBName) {
+                                    setConfirmAction({ type: 'complete', taskId: task.id, user: userBName });
+                                  }
+                                }}
+                                disabled={currentUser.name !== userBName}
+                                className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
+                                  currentUser.name !== userBName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                                } ${
+                                  task.userBCompleted
+                                    ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
+                                    : 'border-gray-200 opacity-60 hover:opacity-100'
+                                }`}
+                                title={currentUser.name !== userBName ? `Only ${userBName} can check their side` : `Your Check`}
+                              >
+                                <img 
+                                  src={getUserAvatar(userBName)} 
+                                  alt={userBName} 
+                                  className="w-full h-full rounded-full object-cover" 
+                                />
+                                {task.userBCompleted && (
+                                  <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                    ✓
+                                  </div>
+                                )}
+                              </button>
+                            </>
+                          );
+                        })()
                       ) : (
                         /* Single Assigned Task: Only assignee can close it */
                         (() => {
-                          const assignedTo = task.assignedToName || currentUser.name;
-                          const isMyTask = assignedTo === currentUser.name || assignedTo === 'Both' || assignedTo === 'Anyone';
-                          const isDone = task.userACompleted || task.userBCompleted || task.completed;
+                          const isDone = task.completed;
                           
                           return (
                             <button
                               onClick={() => {
                                 if (isMyTask) {
-                                  toggleJointTaskTap(task.id, currentUser.name);
+                                  setConfirmAction({ type: 'complete', taskId: task.id, user: currentUser.name });
                                 }
                               }}
                               disabled={!isMyTask}
@@ -349,13 +359,15 @@ export const TasksView: React.FC = () => {
                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                     </button>
 
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="p-2 sm:p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors border-0 cursor-pointer"
-                      title="Delete Task"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isMyTask && (
+                      <button
+                        onClick={() => setConfirmAction({ type: 'delete', taskId: task.id })}
+                        className="p-2 sm:p-2.5 rounded-2xl bg-[#FBF9F5] hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors border-0 cursor-pointer"
+                        title="Delete Task"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                 </div>
@@ -468,7 +480,56 @@ export const TasksView: React.FC = () => {
           </AnimatePresence>
         </div>
       )}
-
+      
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {confirmAction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[2rem] p-6 max-w-xs w-full shadow-2xl"
+            >
+              <div className="space-y-4">
+                <div className="text-center space-y-2">
+                  <h3 className="font-display text-xl font-bold text-[#231F1E]">
+                    {confirmAction.type === 'delete' ? 'Delete Task?' : 'Complete Task?'}
+                  </h3>
+                  <p className="text-sm text-[#6B6560] leading-relaxed">
+                    {confirmAction.type === 'delete'
+                      ? 'Are you sure you want to delete this task? This action cannot be undone.'
+                      : 'Are you sure you want to mark this task as complete?'}
+                  </p>
+                </div>
+                <div className="flex flex-col space-y-2 pt-2">
+                  <button
+                    onClick={() => {
+                      if (confirmAction.type === 'delete') {
+                        deleteTask(confirmAction.taskId);
+                      } else if (confirmAction.type === 'complete') {
+                        toggleJointTaskTap(confirmAction.taskId, confirmAction.user || currentUser.name);
+                      }
+                      setConfirmAction(null);
+                    }}
+                    className={`w-full py-3.5 rounded-2xl font-bold text-white transition-colors border-0 cursor-pointer ${
+                      confirmAction.type === 'delete' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#EF713F] hover:bg-[#D95220]'
+                    }`}
+                  >
+                    Yes, {confirmAction.type === 'delete' ? 'Delete' : 'Complete'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmAction(null)}
+                    className="w-full py-3.5 rounded-2xl font-bold text-[#6B6560] bg-[#F5F3EF] hover:bg-[#EAE6DF] transition-colors border-0 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

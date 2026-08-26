@@ -13,14 +13,15 @@ export const QuickActionSheet: React.FC = () => {
     addTransaction,
     addTask,
     sendChatMessage,
-    currentUser
+    currentUser,
+    partnerUser
   } = useStore();
 
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<BudgetCategoryType>('Expenses');
-  const [expensePaidBy, setExpensePaidBy] = useState<'Leslie' | 'Asa'>('Leslie');
-  const [expenseAccount, setExpenseAccount] = useState<'Opay (Leslie)' | 'Kuda (Asa)' | 'Joint Account'>('Opay (Leslie)');
+  const [expensePaidBy, setExpensePaidBy] = useState<string>(currentUser?.name || 'Partner A');
+  const [expenseAccount, setExpenseAccount] = useState<string>('Joint Account');
   const [expenseIsShared, setExpenseIsShared] = useState(true);
 
   const [taskTitle, setTaskTitle] = useState('');
@@ -184,11 +185,11 @@ export const QuickActionSheet: React.FC = () => {
                     <label className="block text-xs font-semibold text-[#6B6560]">Paid By</label>
                     <select
                       value={expensePaidBy}
-                      onChange={(e) => setExpensePaidBy(e.target.value as any)}
+                      onChange={(e) => setExpensePaidBy(e.target.value)}
                       className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
                     >
-                      <option value="Leslie">Leslie</option>
-                      <option value="Asa">Asa</option>
+                      <option value={currentUser?.name || 'Partner A'}>{currentUser?.name || 'Partner A'}</option>
+                      {partnerUser?.name && <option value={partnerUser.name}>{partnerUser.name}</option>}
                     </select>
                   </div>
                 </div>
@@ -218,11 +219,10 @@ export const QuickActionSheet: React.FC = () => {
                     <label className="block text-xs font-semibold text-[#6B6560]">Account</label>
                     <select
                       value={expenseAccount}
-                      onChange={(e) => setExpenseAccount(e.target.value as any)}
+                      onChange={(e) => setExpenseAccount(e.target.value)}
                       className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
                     >
-                      <option value="Opay (Leslie)">Opay (Leslie)</option>
-                      <option value="Kuda (Asa)">Kuda (Asa)</option>
+                      <option value="Personal Account">Personal Account</option>
                       <option value="Joint Account">Joint Account</option>
                     </select>
                   </div>

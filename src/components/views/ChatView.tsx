@@ -339,18 +339,19 @@ export const ChatView: React.FC = () => {
                     {/* Draggable Message Content Bubble (Swipe Right to Reply) */}
                     <motion.div
                       drag="x"
-                      dragConstraints={{ left: 0, right: 65 }}
-                      dragElastic={0.2}
-                      dragSnapToOrigin={true}
+                      dragDirectionLock
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={{ left: 0, right: 0.3 }}
+                      style={{ touchAction: 'pan-y' }}
                       onDragEnd={(_, info) => {
-                        if (info.offset.x > 35) {
+                        if (info.offset.x > 45) {
                           setReplyingToMessage(msg);
                           if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
                             try { navigator.vibrate(25); } catch {}
                           }
                         }
                       }}
-                      className={`p-3.5 sm:p-4 rounded-3xl text-sm font-sans leading-relaxed border-0 relative cursor-grab active:cursor-grabbing touch-pan-y ${
+                      className={`p-3.5 sm:p-4 rounded-3xl text-sm font-sans leading-relaxed border-0 relative cursor-grab active:cursor-grabbing ${
                         isMe
                           ? 'bg-[#EF713F] text-white rounded-br-md'
                           : 'bg-white text-[#231F1E] rounded-bl-md shadow-xs'

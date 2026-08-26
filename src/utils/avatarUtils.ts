@@ -8,8 +8,8 @@ export function getUserAvatarUrl(
   if (!name) return 'https://api.dicebear.com/7.x/micah/svg?seed=User';
 
   const normalized = name.trim().toLowerCase();
-  const currentName = (currentUser?.name || 'Leslie').toLowerCase();
-  const partnerName = (partnerUser?.name || 'Asa').toLowerCase();
+  const currentName = (currentUser?.name || '').trim().toLowerCase();
+  const partnerName = (partnerUser?.name || '').trim().toLowerCase();
 
   // Joint / Both / Household / Shared
   if (
@@ -22,28 +22,20 @@ export function getUserAvatarUrl(
     return 'https://api.dicebear.com/7.x/personas/svg?seed=JointHousehold&backgroundColor=E9C277';
   }
 
-  // Current User (Leslie)
-  if (
-    normalized === 'leslie' ||
-    normalized.includes(currentName) ||
-    currentName.includes(normalized)
-  ) {
+  // Current User
+  if (currentName && normalized === currentName) {
     if (currentUser?.avatarUrl && !currentUser.avatarUrl.includes('initials/svg')) {
       return currentUser.avatarUrl;
     }
-    return 'https://api.dicebear.com/7.x/micah/svg?seed=Leslie&backgroundColor=EF713F';
+    return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(currentUser?.name || name)}&backgroundColor=EF713F`;
   }
 
-  // Partner User (Asa)
-  if (
-    normalized === 'asa' ||
-    normalized.includes(partnerName) ||
-    partnerName.includes(normalized)
-  ) {
+  // Partner User
+  if (partnerName && normalized === partnerName) {
     if (partnerUser?.avatarUrl && !partnerUser.avatarUrl.includes('initials/svg')) {
       return partnerUser.avatarUrl;
     }
-    return 'https://api.dicebear.com/7.x/thumbs/svg?seed=AsaPartner&backgroundColor=BEABD8';
+    return `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(partnerUser?.name || name)}&backgroundColor=BEABD8`;
   }
 
   // Fallback to micah persona avatar (never initials!)

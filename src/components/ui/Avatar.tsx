@@ -23,10 +23,8 @@ export const Avatar: React.FC<AvatarProps> = ({
     lg: 'w-12 h-12 text-base'
   };
 
-  const initial = name.charAt(0).toUpperCase();
-  const bgGradient = name === 'Leslie'
-    ? 'from-[#EF713F] to-[#E9C277]'
-    : 'from-[#BEABD8] to-[#4A7C59]';
+  const initial = (name || '?').charAt(0).toUpperCase();
+  const bgGradient = 'from-[#EF713F] to-[#E9C277]';
 
   return (
     <div className="relative inline-block">

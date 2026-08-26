@@ -113,44 +113,81 @@ export const DashboardView: React.FC = () => {
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
                     {/* Dual Partner Confirmation Check Pills */}
                     {task.isJoint ? (
-                      <div className="flex items-center space-x-1 shrink-0">
-                        {/* Current User Check Pill */}
-                        <button
-                          onClick={() => toggleJointTaskTap(task.id, currentUser.name)}
-                          className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
-                            task.userACompleted
-                              ? 'bg-[#EF713F] text-white'
-                              : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
-                          }`}
-                          title={`${currentUser.name}'s Check`}
-                        >
-                          {currentUser.name.charAt(0).toUpperCase()}{task.userACompleted ? '✓' : ''}
-                        </button>
+                      (() => {
+                        const sortedNames = [currentUser.name, partnerUser.name].filter(Boolean).sort();
+                        const userAName = sortedNames[0] || 'Partner A';
+                        const userBName = sortedNames[1] || 'Partner B';
 
-                        {/* Partner Check Pill */}
-                        <button
-                          onClick={() => toggleJointTaskTap(task.id, partnerUser.name)}
-                          className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
-                            task.userBCompleted
-                              ? 'bg-[#4A7C59] text-white'
-                              : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
-                          }`}
-                          title={`${partnerUser.name}'s Check`}
-                        >
-                          {partnerUser.name.charAt(0).toUpperCase()}{task.userBCompleted ? '✓' : ''}
-                        </button>
-                      </div>
+                        return (
+                          <div className="flex items-center space-x-1 shrink-0">
+                            {/* Partner A Check Pill */}
+                            <button
+                              onClick={() => {
+                                if (currentUser.name === userAName) {
+                                  toggleJointTaskTap(task.id, userAName);
+                                }
+                              }}
+                              disabled={currentUser.name !== userAName}
+                              className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 overflow-hidden ${
+                                currentUser.name !== userAName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                              } ${
+                                task.userACompleted
+                                  ? 'bg-[#EF713F] text-white'
+                                  : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                              }`}
+                              title={currentUser.name !== userAName ? `Only ${userAName} can check` : `${userAName}'s Check`}
+                            >
+                              {userAName.charAt(0).toUpperCase()}{task.userACompleted ? '✓' : ''}
+                            </button>
+
+                            {/* Partner B Check Pill */}
+                            <button
+                              onClick={() => {
+                                if (currentUser.name === userBName) {
+                                  toggleJointTaskTap(task.id, userBName);
+                                }
+                              }}
+                              disabled={currentUser.name !== userBName}
+                              className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 overflow-hidden ${
+                                currentUser.name !== userBName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                              } ${
+                                task.userBCompleted
+                                  ? 'bg-[#4A7C59] text-white'
+                                  : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                              }`}
+                              title={currentUser.name !== userBName ? `Only ${userBName} can check` : `${userBName}'s Check`}
+                            >
+                              {userBName.charAt(0).toUpperCase()}{task.userBCompleted ? '✓' : ''}
+                            </button>
+                          </div>
+                        );
+                      })()
                     ) : (
-                      <button
-                        onClick={() => toggleJointTaskTap(task.id, currentUser.name)}
-                        className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 cursor-pointer ${
-                          task.completed
-                            ? 'bg-[#4A7C59] text-white'
-                            : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
-                        }`}
-                      >
-                        {task.completed ? '✓' : ''}
-                      </button>
+                      (() => {
+                        const assignedTo = task.assignedToName || currentUser.name;
+                        const isMyTask = assignedTo === currentUser.name || assignedTo === 'Both' || assignedTo === 'Anyone';
+
+                        return (
+                          <button
+                            onClick={() => {
+                              if (isMyTask) {
+                                toggleJointTaskTap(task.id, currentUser.name);
+                              }
+                            }}
+                            disabled={!isMyTask}
+                            className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 ${
+                              !isMyTask ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                            } ${
+                              task.completed
+                                ? 'bg-[#4A7C59] text-white'
+                                : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                            }`}
+                            title={!isMyTask ? `Assigned to ${assignedTo}` : 'Check off task'}
+                          >
+                            {task.completed ? '✓' : ''}
+                          </button>
+                        );
+                      })()
                     )}
 
                     <div className="space-y-0.5 min-w-0 flex-1">
