@@ -128,24 +128,42 @@ export const ChatView: React.FC = () => {
     }
   };
 
-  // Build dynamic conversations list: Main Chat + Active Inline Thread Discussions
-  // Group contextual comments by targetId
-  const threadMap = new Map<string, { comments: typeof contextualComments; itemTitle: string; type: 'TASK' | 'TRANSACTION' | 'RECURRING_BILL' }>();
+  // Group contextual comments by targetId (only for existing tasks/transactions)
+  const threadMap = new Map<string, {
+    comments: typeof contextualComments;
+    itemTitle: string;
+    itemDate: string;
+    type: 'TASK' | 'TRANSACTION' | 'RECURRING_BILL';
+  }>();
 
   contextualComments.forEach(comment => {
+    const targetTypeUpper = comment.targetType ? comment.targetType.toUpperCase() : 'TASK';
+    let itemTitle = '';
+    let itemDate = '';
+
+    if (targetTypeUpper === 'TASK') {
+      const t = tasks.find(x => x.id === comment.targetId);
+      if (!t) return; // Parent task deleted -> exclude conversation from chat page!
+      itemTitle = t.title;
+      itemDate = t.dueDate || '';
+    } else if (targetTypeUpper === 'TRANSACTION') {
+      const tx = transactions.find(x => x.id === comment.targetId);
+      if (!tx) return; // Parent transaction deleted -> exclude conversation from chat page!
+      itemTitle = tx.title;
+      itemDate = tx.date || '';
+    } else {
+      const t = tasks.find(x => x.id === comment.targetId);
+      const tx = transactions.find(x => x.id === comment.targetId);
+      if (!t && !tx) return; // Exclude deleted parent items!
+      itemTitle = t ? t.title : tx!.title;
+      itemDate = t ? (t.dueDate || '') : (tx!.date || '');
+    }
+
     if (!threadMap.has(comment.targetId)) {
-      let itemTitle = 'Inline Discussion';
-      const targetTypeUpper = comment.targetType ? comment.targetType.toUpperCase() : 'TASK';
-      if (targetTypeUpper === 'TASK') {
-        const t = tasks.find(x => x.id === comment.targetId);
-        if (t) itemTitle = t.title;
-      } else if (targetTypeUpper === 'TRANSACTION') {
-        const tx = transactions.find(x => x.id === comment.targetId);
-        if (tx) itemTitle = tx.title;
-      }
       threadMap.set(comment.targetId, {
         comments: [],
         itemTitle,
+        itemDate,
         type: targetTypeUpper as any
       });
     }
@@ -154,13 +172,16 @@ export const ChatView: React.FC = () => {
 
   const inlineThreadConvs = Array.from(threadMap.entries()).map(([targetId, info]) => {
     const lastComment = info.comments[info.comments.length - 1];
+    const dateTag = info.itemDate ? info.itemDate : (lastComment?.timestamp ? lastComment.timestamp.split(',')[0] : '');
+
     return {
       id: `thread-${targetId}`,
       isInlineThread: true,
       threadItem: { type: info.type, id: targetId, title: info.itemTitle },
-      title: `💬 ${info.itemTitle}`,
+      title: info.itemTitle,
+      dateTag: dateTag,
       subtitle: lastComment ? `${lastComment.authorName}: ${lastComment.text}` : 'Inline conversation',
-      time: lastComment?.timestamp || '',
+      time: lastComment?.timestamp ? (dateTag && !lastComment.timestamp.includes(dateTag) ? `${dateTag} • ${lastComment.timestamp}` : lastComment.timestamp) : dateTag,
       avatar: '/logo.svg'
     };
   });
@@ -168,6 +189,7 @@ export const ChatView: React.FC = () => {
   const mainChatConv = {
     id: 'partner',
     isInlineThread: false,
+    dateTag: '',
     threadItem: undefined as { type: 'TASK' | 'TRANSACTION' | 'RECURRING_BILL'; id: string; title: string } | undefined,
     title: partnerUser.name.startsWith('Waiting') ? 'Partner' : partnerUser.name,
     subtitle: chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].content : 'No messages yet. Say something sweet...',
@@ -227,11 +249,18 @@ export const ChatView: React.FC = () => {
                   </div>
 
                   <div className="space-y-0.5 min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base text-[#231F1E] group-hover:text-[#EF713F] transition-colors truncate">
-                        {conv.title}
-                      </h3>
-                      <span className="text-[10px] font-mono text-[#6B6560]">{conv.time}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <h3 className="font-bold text-base text-[#231F1E] group-hover:text-[#EF713F] transition-colors truncate">
+                          {conv.isInlineThread ? `💬 ${conv.title}` : conv.title}
+                        </h3>
+                        {conv.dateTag && (
+                          <span className="px-2 py-0.5 rounded-full bg-[#FAF6EB] text-[#CF9130] text-[10px] font-mono font-semibold shrink-0">
+                            {conv.dateTag}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-mono text-[#6B6560] shrink-0">{conv.time}</span>
                     </div>
 
                     <p className="text-xs text-[#6B6560] truncate font-sans">

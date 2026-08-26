@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Avatar } from '../ui/Avatar';
@@ -119,8 +120,8 @@ export const DashboardView: React.FC = () => {
                         const userBName = sortedNames[1] || 'Partner B';
 
                         return (
-                          <div className="flex items-center space-x-1 shrink-0">
-                            {/* Partner A Check Pill */}
+                          <div className="flex items-center space-x-1.5 shrink-0">
+                            {/* Partner A Check Button */}
                             <button
                               onClick={() => {
                                 if (currentUser.name === userAName) {
@@ -128,19 +129,28 @@ export const DashboardView: React.FC = () => {
                                 }
                               }}
                               disabled={currentUser.name !== userAName}
-                              className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 overflow-hidden ${
+                              className={`relative w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
                                 currentUser.name !== userAName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                               } ${
                                 task.userACompleted
-                                  ? 'bg-[#EF713F] text-white'
-                                  : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                                  ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
+                                  : 'border-gray-200 opacity-60 hover:opacity-100'
                               }`}
                               title={currentUser.name !== userAName ? `Only ${userAName} can check` : `${userAName}'s Check`}
                             >
-                              {userAName.charAt(0).toUpperCase()}{task.userACompleted ? '✓' : ''}
+                              <img 
+                                src={getUserAvatarUrl(userAName, currentUser, partnerUser)} 
+                                alt={userAName} 
+                                className="w-full h-full rounded-full object-cover" 
+                              />
+                              {task.userACompleted && (
+                                <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                  ✓
+                                </div>
+                              )}
                             </button>
 
-                            {/* Partner B Check Pill */}
+                            {/* Partner B Check Button */}
                             <button
                               onClick={() => {
                                 if (currentUser.name === userBName) {
@@ -148,16 +158,25 @@ export const DashboardView: React.FC = () => {
                                 }
                               }}
                               disabled={currentUser.name !== userBName}
-                              className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 overflow-hidden ${
+                              className={`relative w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
                                 currentUser.name !== userBName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                               } ${
                                 task.userBCompleted
-                                  ? 'bg-[#4A7C59] text-white'
-                                  : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                                  ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
+                                  : 'border-gray-200 opacity-60 hover:opacity-100'
                               }`}
                               title={currentUser.name !== userBName ? `Only ${userBName} can check` : `${userBName}'s Check`}
                             >
-                              {userBName.charAt(0).toUpperCase()}{task.userBCompleted ? '✓' : ''}
+                              <img 
+                                src={getUserAvatarUrl(userBName, currentUser, partnerUser)} 
+                                alt={userBName} 
+                                className="w-full h-full rounded-full object-cover" 
+                              />
+                              {task.userBCompleted && (
+                                <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                  ✓
+                                </div>
+                              )}
                             </button>
                           </div>
                         );
@@ -175,16 +194,25 @@ export const DashboardView: React.FC = () => {
                               }
                             }}
                             disabled={!isMyTask}
-                            className={`w-7 h-7 rounded-xl text-xs font-bold font-mono transition-all flex items-center justify-center border-0 ${
+                            className={`relative w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
                               !isMyTask ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                             } ${
                               task.completed
-                                ? 'bg-[#4A7C59] text-white'
-                                : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
+                                ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
+                                : 'border-gray-200 hover:border-[#EF713F]'
                             }`}
                             title={!isMyTask ? `Assigned to ${assignedTo}` : 'Check off task'}
                           >
-                            {task.completed ? '✓' : ''}
+                            <img 
+                              src={getUserAvatarUrl(assignedTo, currentUser, partnerUser)} 
+                              alt={assignedTo} 
+                              className="w-full h-full rounded-full object-cover" 
+                            />
+                            {task.completed && (
+                              <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                ✓
+                              </div>
+                            )}
                           </button>
                         );
                       })()
