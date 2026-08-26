@@ -1,4 +1,7 @@
 import { savePushSubscriptionToDB } from '../services';
+import { supabase } from '../lib/supabase';
+
+const DEFAULT_VAPID_PUBLIC_KEY = 'BGxZOAJNcO0mSHKAUx7wkckR6EKfA3itwJSvVNy6PXfKt-SiX83LIanZ2hQVkt21_jaAS5m4UE5LBvaXOqQ-KGQ';
 
 /**
  * Converts VAPID Base64 string to Uint8Array for Web Push PushManager registration.
@@ -64,7 +67,7 @@ export async function subscribeUserToWebPush(
       const keyToUse =
         vapidPublicKey ||
         (import.meta.env && import.meta.env.VITE_VAPID_PUBLIC_KEY) ||
-        'BEl62iUYgUivxIkv69yViEuiBIa-m9GYW52M5zEup08x35c9P4P2J83-J0z40J90vW87-2P0';
+        DEFAULT_VAPID_PUBLIC_KEY;
 
       try {
         const convertedKey = urlBase64ToUint8Array(keyToUse);
@@ -73,7 +76,7 @@ export async function subscribeUserToWebPush(
           applicationServerKey: convertedKey
         });
       } catch (subErr) {
-        console.warn('PushManager subscribe notice (VAPID key optional for local push):', subErr);
+        console.warn('PushManager subscribe notice:', subErr);
       }
     }
 
@@ -129,5 +132,33 @@ export async function sendPushNotification(
     new Notification(title, notificationOptions);
   } catch (err) {
     console.error('Failed to trigger notification:', err);
+  }
+}
+
+/**
+ * Dispatches Web Push payload to partner's background device via Supabase Edge Function.
+ * Delivers notifications even when partner's browser or app is completely CLOSED.
+ */
+export async function sendBackgroundPushToPartner(
+  householdId: string,
+  senderId: string,
+  title: string,
+  body: string,
+  url: string = '/'
+): Promise<void> {
+  if (!householdId || householdId.startsWith('hh_') || !senderId) return;
+
+  try {
+    await supabase.functions.invoke('send-push', {
+      body: {
+        household_id: householdId,
+        sender_id: senderId,
+        title,
+        body,
+        url
+      }
+    });
+  } catch (err) {
+    console.warn('Background push to partner notice:', err);
   }
 }

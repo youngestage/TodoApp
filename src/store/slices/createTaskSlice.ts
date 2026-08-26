@@ -1,5 +1,6 @@
 import { StateCreator } from 'zustand';
 import { Task, TaskFolder } from '../../types';
+import { sendBackgroundPushToPartner } from '../../utils/notifications';
 import { StoreState } from '../useStore';
 import {
   saveTaskToDB,
@@ -76,13 +77,23 @@ export const createTaskSlice: StateCreator<StoreState, [], [], TaskSlice> = (set
       subTasks: task.subTasks || []
     };
 
-    set((state: StoreState) => {
-      sendPushNotification('New Joint Household Task', `Added: "${task.title}"`);
-      return { tasks: [newTask, ...state.tasks] };
-    });
+    set((state: StoreState) => ({ tasks: [newTask, ...state.tasks] }));
 
     const householdId = get().household?.id;
-    if (householdId) saveTaskToDB(newTask, householdId);
+    const currentUserId = get().currentUser?.id;
+    const senderName = get().currentUser?.name || 'Partner';
+    if (householdId) {
+      saveTaskToDB(newTask, householdId);
+      if (currentUserId) {
+        sendBackgroundPushToPartner(
+          householdId,
+          currentUserId,
+          'New Task Added 📝',
+          `${senderName} added task: "${task.title}"`,
+          '/'
+        );
+      }
+    }
   },
 
   deleteTask: (taskId) => {

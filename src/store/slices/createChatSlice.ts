@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { ChatMessage, ContextualComment, QuickNote } from '../../types';
 import { sendChatMessageToDB, sendBuzzToDB } from '../../services';
+import { sendBackgroundPushToPartner } from '../../utils/notifications';
 import { StoreState } from '../useStore';
 
 export interface ChatSlice {
@@ -86,6 +87,13 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
 
     if (householdId && currentUserId) {
       sendChatMessageToDB(householdId, currentUserId, senderName, content, attachment, msgId);
+      sendBackgroundPushToPartner(
+        householdId,
+        currentUserId,
+        `New Message from ${senderName}`,
+        content || 'Sent an attachment',
+        '/'
+      );
     }
   },
 
@@ -121,6 +129,13 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
 
     if (householdId && currentUserId) {
       sendBuzzToDB(householdId, currentUserId, senderName, partnerName, msgId);
+      sendBackgroundPushToPartner(
+        householdId,
+        currentUserId,
+        '⚡ Partner Buzz Alert!',
+        `${senderName} buzzed you! Tap to respond.`,
+        '/'
+      );
     }
   },
 

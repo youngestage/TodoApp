@@ -30,10 +30,18 @@ self.addEventListener('activate', (event) => {
 
 // Handle Push Notifications
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Couples Studio Update';
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'Couples Studio Update 🎉';
   const options = {
-    body: data.body || 'New action performed in your shared household.',
+    body: data.body || 'New action performed in your shared household workspace.',
     icon: '/logo.svg',
     badge: '/logo.svg',
     vibrate: [100, 50, 100],

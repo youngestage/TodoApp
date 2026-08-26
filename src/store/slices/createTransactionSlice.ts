@@ -11,6 +11,7 @@ import {
   AppPreferences
 } from '../../types';
 import { calculateNextDueDate } from '../../utils/dateUtils';
+import { sendBackgroundPushToPartner } from '../../utils/notifications';
 import { calculateEffectiveAPR } from '../../utils/debtEngine';
 import { calculateRequiredContribution } from '../../utils/savingsEngine';
 import { StoreState } from '../useStore';
@@ -376,7 +377,20 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
     set((state: StoreState) => ({ transactions: [newTx, ...state.transactions] }));
 
     const householdId = get().household?.id;
-    if (householdId) saveTransactionToDB(newTx, householdId);
+    const currentUserId = get().currentUser?.id;
+    if (householdId) {
+      saveTransactionToDB(newTx, householdId);
+      if (currentUserId) {
+        const typeLabel = tx.type === 'EXPENSE' ? 'expense' : 'income';
+        sendBackgroundPushToPartner(
+          householdId,
+          currentUserId,
+          'New Transaction Logged 💰',
+          `${tx.paidBy} logged ${typeLabel}: ${tx.title} (${get().preferences.currency}${tx.amount})`,
+          '/'
+        );
+      }
+    }
   },
 
   updateTransaction: (id, updates) => {
