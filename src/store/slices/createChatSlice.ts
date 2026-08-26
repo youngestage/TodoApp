@@ -1,6 +1,6 @@
 import { StateCreator } from 'zustand';
 import { ChatMessage, ContextualComment, QuickNote } from '../../types';
-import { sendChatMessageToDB, sendBuzzToDB } from '../../services';
+import { sendChatMessageToDB, sendBuzzToDB, saveContextualCommentToDB } from '../../services';
 import { sendBackgroundPushToPartner } from '../../utils/notifications';
 import { StoreState } from '../useStore';
 
@@ -140,18 +140,45 @@ export const createChatSlice: StateCreator<StoreState, [], [], ChatSlice> = (set
   },
 
   contextualComments: [],
-  addContextualComment: (targetId, targetType, text) => set((state: StoreState) => {
-    const senderName = state.currentUser?.name || 'Partner';
+  addContextualComment: (targetId, targetType, text) => {
+    const stateAny: any = get();
+    const senderName = stateAny.currentUser?.name || 'Partner';
+    const currentUserId = stateAny.currentUser?.id;
+    const householdId = stateAny.household?.id;
+    const commentId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `comment-${Date.now()}`;
+
     const newComment: ContextualComment = {
-      id: `comment-${Date.now()}`,
+      id: commentId,
       targetId,
       targetType,
       authorName: senderName,
       text,
       timestamp: 'Just now'
     };
-    return { contextualComments: [...state.contextualComments, newComment] };
-  }),
+
+    set((state: StoreState) => {
+      // Increment commentsCount on target item in state
+      const updatedTasks = state.tasks.map(t => t.id === targetId ? { ...t, commentsCount: (t.commentsCount || 0) + 1 } : t);
+      const updatedTransactions = state.transactions.map(t => t.id === targetId ? { ...t, commentsCount: (t.commentsCount || 0) + 1 } : t);
+      return {
+        contextualComments: [...state.contextualComments, newComment],
+        tasks: updatedTasks,
+        transactions: updatedTransactions
+      };
+    });
+
+    if (householdId && currentUserId) {
+      saveContextualCommentToDB(newComment, householdId, currentUserId);
+      const targetTitle = stateAny.activeContextualThread?.title || targetType;
+      sendBackgroundPushToPartner(
+        householdId,
+        currentUserId,
+        `💬 Inline Comment on ${targetTitle}`,
+        `${senderName}: "${text}"`,
+        '/'
+      );
+    }
+  },
 
   quickNotes: [],
   addQuickNote: (text) => set((state: StoreState) => {

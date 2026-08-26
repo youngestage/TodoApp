@@ -7,7 +7,8 @@ import {
   updateTaskInDB,
   deleteTaskFromDB,
   saveFolderToDB,
-  deleteFolderFromDB
+  deleteFolderFromDB,
+  deleteContextualCommentsByTargetInDB
 } from '../../services';
 
 export interface TaskSlice {
@@ -98,9 +99,12 @@ export const createTaskSlice: StateCreator<StoreState, [], [], TaskSlice> = (set
 
   deleteTask: (taskId) => {
     set((state: StoreState) => ({
-      tasks: state.tasks.filter(t => t.id !== taskId)
+      tasks: state.tasks.filter(t => t.id !== taskId),
+      contextualComments: state.contextualComments.filter(c => c.targetId !== taskId),
+      chatMessages: state.chatMessages.filter(m => m.attachment?.id !== taskId)
     }));
     deleteTaskFromDB(taskId);
+    deleteContextualCommentsByTargetInDB(taskId);
   },
 
   addFolder: (folder) => {

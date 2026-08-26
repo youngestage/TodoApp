@@ -383,6 +383,24 @@ export default function App() {
       }, async () => {
         await fetchHouseholdData(household.id);
       })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'contextual_comments'
+      }, async (payload: any) => {
+        await fetchHouseholdData(household.id);
+        if (payload?.eventType === 'INSERT' && payload?.new) {
+          const currentStore = useStore.getState();
+          const isFromPartner = payload.new.author_name && payload.new.author_name !== currentStore.currentUser?.name;
+          if (isFromPartner) {
+            sendPushNotification(
+              '💬 New Inline Comment',
+              `${payload.new.author_name}: "${payload.new.text}"`,
+              { tag: NOTIFICATION_TAGS.CHAT_MESSAGE }
+            );
+          }
+        }
+      })
       .subscribe();
 
     return () => {

@@ -32,7 +32,8 @@ import {
   deleteTransactionFromDB,
   saveIncomeStreamToDB,
   updateIncomeStreamInDB,
-  deleteIncomeStreamFromDB
+  deleteIncomeStreamFromDB,
+  deleteContextualCommentsByTargetInDB
 } from '../../services';
 
 export interface TransactionSlice {
@@ -402,9 +403,12 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
 
   deleteTransaction: (id) => {
     set((state: StoreState) => ({
-      transactions: state.transactions.filter((t) => t.id !== id)
+      transactions: state.transactions.filter((t) => t.id !== id),
+      contextualComments: state.contextualComments.filter((c) => c.targetId !== id),
+      chatMessages: state.chatMessages.filter((m) => m.attachment?.id !== id)
     }));
     deleteTransactionFromDB(id);
+    deleteContextualCommentsByTargetInDB(id);
   },
 
   settleUpBalance: () => set((state: StoreState) => ({
@@ -446,9 +450,12 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
 
   deleteRecurringBill: (id) => {
     set((state: StoreState) => ({
-      recurringBills: state.recurringBills.filter((b) => b.id !== id)
+      recurringBills: state.recurringBills.filter((b) => b.id !== id),
+      contextualComments: state.contextualComments.filter((c) => c.targetId !== id),
+      chatMessages: state.chatMessages.filter((m) => m.attachment?.id !== id)
     }));
     deleteRecurringBillFromDB(id);
+    deleteContextualCommentsByTargetInDB(id);
   },
 
   togglePauseBill: (id) => {

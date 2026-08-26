@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { User, Household, Task, Transaction, ChatMessage, QuickNote, RecurringBill, DebtAccount, DebtPayment, SavingsGoal, SavingsContribution, IncomeStream } from '../types';
+import { User, Household, Task, Transaction, ChatMessage, QuickNote, RecurringBill, DebtAccount, DebtPayment, SavingsGoal, SavingsContribution, IncomeStream, ContextualComment } from '../types';
 
 export function generateFreshInviteCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -30,6 +30,7 @@ export async function fetchHouseholdDataFromDB(
   incomeStreams: IncomeStream[];
   chatMessages: ChatMessage[];
   quickNotes: QuickNote[];
+  contextualComments: ContextualComment[];
 } | null> {
   if (!householdId || householdId.startsWith('hh_')) return null;
 
@@ -303,6 +304,22 @@ export async function fetchHouseholdDataFromDB(
       }
     };
 
+    // 12. Fetch contextual comments
+    const { data: commentsData } = await supabase
+      .from('contextual_comments')
+      .select('*')
+      .eq('household_id', householdId)
+      .order('created_at', { ascending: true });
+
+    const contextualComments: ContextualComment[] = (commentsData || []).map((c) => ({
+      id: c.id,
+      targetId: c.target_id,
+      targetType: c.target_type,
+      authorName: c.author_name,
+      text: c.text,
+      timestamp: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }));
+
     return {
       household,
       currentUser: foundCurrentUser,
@@ -315,7 +332,8 @@ export async function fetchHouseholdDataFromDB(
       savingsGoals,
       incomeStreams,
       chatMessages,
-      quickNotes
+      quickNotes,
+      contextualComments
     };
   } catch (err) {
     console.warn('Error fetching household data from Supabase DB:', err);
@@ -931,6 +949,36 @@ export async function deletePushSubscriptionInDB(userId: string) {
     await supabase.from('push_subscriptions').delete().eq('user_id', userId);
   } catch (err) {
     console.warn('Error deleting push subscription from DB:', err);
+  }
+}
+
+export async function saveContextualCommentToDB(comment: ContextualComment, householdId: string, authorId?: string) {
+  if (!householdId || householdId.startsWith('hh_')) return;
+  try {
+    const payload: any = {
+      household_id: householdId,
+      target_id: comment.targetId,
+      target_type: comment.targetType,
+      author_name: comment.authorName,
+      text: comment.text
+    };
+    if (comment.id && !comment.id.startsWith('comment-')) {
+      payload.id = comment.id;
+    }
+    if (authorId && !authorId.startsWith('usr_')) {
+      payload.author_id = authorId;
+    }
+    await supabase.from('contextual_comments').insert(payload);
+  } catch (err) {
+    console.warn('Error saving contextual comment to DB:', err);
+  }
+}
+
+export async function deleteContextualCommentsByTargetInDB(targetId: string) {
+  try {
+    await supabase.from('contextual_comments').delete().eq('target_id', targetId);
+  } catch (err) {
+    console.warn('Error deleting contextual comments from DB:', err);
   }
 }
 

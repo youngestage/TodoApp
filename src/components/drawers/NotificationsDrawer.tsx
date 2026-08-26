@@ -6,10 +6,17 @@ import { CloseCircle, TaskSquare, Wallet3, NoteText } from 'iconsax-react';
 export const NotificationsDrawer: React.FC = () => {
   const { isNotificationsOpen, setNotificationsOpen, setCurrentView, openContextualThread, tasks, transactions, quickNotes } = useStore();
   const [activeFilter, setActiveFilter] = useState<'All' | 'Task' | 'Budget' | 'Note'>('All');
+  const [clearedIds, setClearedIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('ct_cleared_notifs') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // Derive real notifications dynamically from active store data
   const realNotifications = [
-    ...tasks.slice(0, 3).map(t => ({
+    ...tasks.slice(0, 5).map(t => ({
       id: `notif-task-${t.id}`,
       title: `${t.assignedToName} task: ${t.title}`,
       time: t.dueDate,
@@ -19,7 +26,7 @@ export const NotificationsDrawer: React.FC = () => {
       targetView: 'tasks' as const,
       threadItem: { type: 'TASK' as const, id: t.id, title: t.title }
     })),
-    ...transactions.slice(0, 3).map(tx => ({
+    ...transactions.slice(0, 5).map(tx => ({
       id: `notif-tx-${tx.id}`,
       title: `${tx.paidBy} logged ${tx.type === 'EXPENSE' ? 'expense' : 'income'}: ${tx.title} (₦${tx.amount.toLocaleString()})`,
       time: tx.date,
@@ -29,7 +36,7 @@ export const NotificationsDrawer: React.FC = () => {
       targetView: 'budget' as const,
       threadItem: { type: 'TRANSACTION' as const, id: tx.id, title: tx.title }
     })),
-    ...quickNotes.slice(0, 3).map(n => ({
+    ...quickNotes.slice(0, 5).map(n => ({
       id: `notif-note-${n.id}`,
       title: `${n.authorName} note: ${n.text}`,
       time: n.timestamp,
@@ -39,12 +46,32 @@ export const NotificationsDrawer: React.FC = () => {
     }))
   ];
 
-  const filteredNotifications = realNotifications.filter(n => {
+  const visibleNotifications = realNotifications.filter(n => !clearedIds.includes(n.id));
+
+  const filteredNotifications = visibleNotifications.filter(n => {
     if (activeFilter === 'All') return true;
     return n.type === activeFilter;
   });
 
+  const clearNotification = (id: string) => {
+    const updated = [...clearedIds, id];
+    setClearedIds(updated);
+    try {
+      localStorage.setItem('ct_cleared_notifs', JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleClearAll = () => {
+    const allIds = realNotifications.map(n => n.id);
+    const updated = Array.from(new Set([...clearedIds, ...allIds]));
+    setClearedIds(updated);
+    try {
+      localStorage.setItem('ct_cleared_notifs', JSON.stringify(updated));
+    } catch {}
+  };
+
   const handleNotificationClick = (item: any) => {
+    clearNotification(item.id);
     setNotificationsOpen(false);
     if (item.threadItem) {
       openContextualThread(item.threadItem);
@@ -78,9 +105,19 @@ export const NotificationsDrawer: React.FC = () => {
           >
             <div className="space-y-6">
               
-              {/* Clean Header: "Notifications" Title ONLY */}
+              {/* Clean Header: "Notifications" Title & Clear All */}
               <div className="flex items-center justify-between border-0 pb-1">
-                <h3 className="font-display text-2xl font-bold text-[#231F1E]">Notifications</h3>
+                <div className="flex items-center space-x-3">
+                  <h3 className="font-display text-2xl font-bold text-[#231F1E]">Notifications</h3>
+                  {visibleNotifications.length > 0 && (
+                    <button
+                      onClick={handleClearAll}
+                      className="text-[11px] font-mono text-[#EF713F] hover:underline bg-transparent border-0 cursor-pointer"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
 
                 <button
                   onClick={() => setNotificationsOpen(false)}
@@ -142,9 +179,16 @@ export const NotificationsDrawer: React.FC = () => {
                           </span>
                         </div>
 
-                        {n.unread && (
-                          <span className="w-2 h-2 rounded-full bg-[#EF713F] shrink-0 mt-1" />
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearNotification(n.id);
+                          }}
+                          className="text-gray-300 hover:text-red-500 border-0 bg-transparent cursor-pointer p-0.5"
+                          title="Dismiss"
+                        >
+                          ✕
+                        </button>
                       </div>
                     );
                   })

@@ -170,50 +170,108 @@ export const TasksView: React.FC = () => {
                     
                     {/* Dual Partner Avatar Check Pills */}
                     <div className="flex items-center space-x-1.5 shrink-0 pt-0.5">
-                      {/* Current User Check Avatar */}
-                      <button
-                        onClick={() => toggleJointTaskTap(task.id, currentUser.name)}
-                        className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 cursor-pointer p-0.5 overflow-hidden ${
-                          task.userACompleted
-                            ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
-                            : 'border-gray-200 opacity-60 hover:opacity-100'
-                        }`}
-                        title={`${currentUser.name}'s Check`}
-                      >
-                        <img 
-                          src={getUserAvatar(currentUser.name)} 
-                          alt={currentUser.name} 
-                          className="w-full h-full rounded-full object-cover" 
-                        />
-                        {task.userACompleted && (
-                          <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                            ✓
-                          </div>
-                        )}
-                      </button>
+                      {task.isJoint ? (
+                        <>
+                          {/* Partner A Check Button (User A) */}
+                          <button
+                            onClick={() => {
+                              if (currentUser.name === 'Leslie' || currentUser.name === 'Partner A' || !partnerUser.name || currentUser.name !== partnerUser.name) {
+                                toggleJointTaskTap(task.id, currentUser.name);
+                              }
+                            }}
+                            disabled={currentUser.name === partnerUser.name && partnerUser.name !== ''}
+                            className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
+                              currentUser.name === partnerUser.name ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                            } ${
+                              task.userACompleted
+                                ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
+                                : 'border-gray-200 opacity-60 hover:opacity-100'
+                            }`}
+                            title={currentUser.name === partnerUser.name ? `${currentUser.name} cannot check partner's side` : `Your Check`}
+                          >
+                            <img 
+                              src={getUserAvatar(currentUser.name)} 
+                              alt={currentUser.name} 
+                              className="w-full h-full rounded-full object-cover" 
+                            />
+                            {task.userACompleted && (
+                              <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                ✓
+                              </div>
+                            )}
+                          </button>
 
-                      {/* Partner Check Avatar */}
-                      {task.isJoint && (
-                        <button
-                          onClick={() => toggleJointTaskTap(task.id, partnerUser.name)}
-                          className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 cursor-pointer p-0.5 overflow-hidden ${
-                            task.userBCompleted
-                              ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
-                              : 'border-gray-200 opacity-60 hover:opacity-100'
-                          }`}
-                          title={`${partnerUser.name}'s Check`}
-                        >
-                          <img 
-                            src={getUserAvatar(partnerUser.name)} 
-                            alt={partnerUser.name} 
-                            className="w-full h-full rounded-full object-cover" 
-                          />
-                          {task.userBCompleted && (
-                            <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                              ✓
-                            </div>
-                          )}
-                        </button>
+                          {/* Partner B Check Button (User B) */}
+                          <button
+                            onClick={() => {
+                              if (currentUser.name === partnerUser.name) {
+                                toggleJointTaskTap(task.id, partnerUser.name);
+                              }
+                            }}
+                            disabled={currentUser.name !== partnerUser.name}
+                            className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
+                              currentUser.name !== partnerUser.name ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                            } ${
+                              task.userBCompleted
+                                ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
+                                : 'border-gray-200 opacity-60 hover:opacity-100'
+                            }`}
+                            title={currentUser.name !== partnerUser.name ? `Only ${partnerUser.name} can check their side` : `${partnerUser.name}'s Check`}
+                          >
+                            <img 
+                              src={getUserAvatar(partnerUser.name)} 
+                              alt={partnerUser.name} 
+                              className="w-full h-full rounded-full object-cover" 
+                            />
+                            {task.userBCompleted && (
+                              <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                ✓
+                              </div>
+                            )}
+                          </button>
+                        </>
+                      ) : (
+                        /* Single Assigned Task: Only assignee can close it */
+                        (() => {
+                          const assignedTo = task.assignedToName || currentUser.name;
+                          const isMyTask = assignedTo === currentUser.name || assignedTo === 'Both' || assignedTo === 'Anyone';
+                          const isDone = task.userACompleted || task.userBCompleted || task.completed;
+                          
+                          return (
+                            <button
+                              onClick={() => {
+                                if (isMyTask) {
+                                  toggleJointTaskTap(task.id, currentUser.name);
+                                }
+                              }}
+                              disabled={!isMyTask}
+                              className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
+                                !isMyTask ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                              } ${
+                                isDone
+                                  ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
+                                  : 'border-gray-200 hover:border-[#EF713F]'
+                              }`}
+                              title={isMyTask ? `Check off task` : `Assigned to ${assignedTo} (Only assignee can close)`}
+                            >
+                              <img 
+                                src={getUserAvatar(assignedTo)} 
+                                alt={assignedTo} 
+                                className="w-full h-full rounded-full object-cover" 
+                              />
+                              {isDone && (
+                                <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
+                                  ✓
+                                </div>
+                              )}
+                              {!isMyTask && !isDone && (
+                                <div className="absolute bottom-0 right-0 bg-[#231F1E] text-white text-[8px] p-0.5 rounded-full">
+                                  🔒
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })()
                       )}
                     </div>
 
