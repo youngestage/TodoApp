@@ -122,7 +122,8 @@ export async function savePushSubscriptionToDB(
 // ─────────────────────────────────────────────────────────────
 export async function subscribeUserToWebPush(
   userId: string,
-  householdId: string
+  householdId: string,
+  isUserGesture: boolean = false
 ): Promise<PushSubscription | null> {
   if (!isPushSupported()) {
     console.warn('[Push] Web Push not supported on this browser.');
@@ -132,10 +133,16 @@ export async function subscribeUserToWebPush(
   if (!householdId || householdId.startsWith('hh_')) return null;
 
   try {
-    // Request permission (on iOS this must be a direct user gesture!)
-    if (Notification.permission !== 'granted') {
+    // Only prompt for permission if explicitly invoked by a user gesture.
+    // If called in background without permission, return null quietly to avoid browser violations.
+    if (Notification.permission === 'default') {
+      if (!isUserGesture) {
+        return null;
+      }
       const granted = await requestNotificationPermission();
       if (!granted) return null;
+    } else if (Notification.permission !== 'granted') {
+      return null;
     }
 
     const registration = await navigator.serviceWorker.ready;

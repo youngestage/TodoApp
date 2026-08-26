@@ -200,7 +200,7 @@ export default function App() {
           };
 
           const isFromPartner = (newMsg.sender_id && newMsg.sender_id !== currentStore.currentUser?.id)
-            || (newMsg.sender_name !== currentStore.currentUser?.name);
+            && (newMsg.sender_name !== currentStore.currentUser?.name);
 
           const alreadyPresent = currentStore.chatMessages.some(m => m.id === newMsg.id);
 
@@ -225,14 +225,6 @@ export default function App() {
               const title = '⚡ Partner Buzz Alert!';
               const body = `${newMsg.sender_name} buzzed you! Tap to respond.`;
               sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.CHAT_BUZZ, requireInteraction: true });
-              sendBackgroundPushToPartner(
-                household.id,
-                currentStore.currentUser?.id || '',
-                title,
-                body,
-                '/chat',
-                NOTIFICATION_TAGS.CHAT_BUZZ
-              );
               if (typeof window !== 'undefined' && 'vibrate' in navigator) {
                 try { navigator.vibrate([200, 100, 200, 100, 300]); } catch (e) {}
               }
@@ -240,14 +232,6 @@ export default function App() {
               const title = `💬 ${newMsg.sender_name}`;
               const body = newMsg.content || '';
               sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.CHAT_MESSAGE });
-              sendBackgroundPushToPartner(
-                household.id,
-                currentStore.currentUser?.id || '',
-                title,
-                body,
-                '/chat',
-                NOTIFICATION_TAGS.CHAT_MESSAGE
-              );
             }
           }
         } else {
@@ -265,34 +249,18 @@ export default function App() {
           const currentUserId = currentStore.currentUser?.id;
           const currentUserName = currentStore.currentUser?.name;
           const partnerName = currentStore.partnerUser?.name || 'Partner';
-          const isFromPartner = (payload.new.user_id && payload.new.user_id !== currentUserId) ||
-                                (payload.new.assigned_to_name && payload.new.assigned_to_name !== currentUserName);
+          const isFromPartner = (payload.new.created_by && payload.new.created_by !== currentUserId) ||
+                                (payload.new.completed_by && payload.new.completed_by !== currentUserName);
 
           if (isFromPartner) {
             if (payload.eventType === 'INSERT') {
               const title = '📝 New Task Added';
               const body = `${partnerName} added: "${payload.new.title}"`;
               sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.TASK_ADD });
-              sendBackgroundPushToPartner(
-                household.id,
-                currentUserId || '',
-                title,
-                body,
-                '/tasks',
-                NOTIFICATION_TAGS.TASK_ADD
-              );
             } else if (payload.eventType === 'UPDATE' && payload.new.completed && !payload.old?.completed) {
               const title = '✅ Task Completed!';
               const body = `"${payload.new.title}" was completed by ${partnerName}`;
               sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.TASK_COMPLETE });
-              sendBackgroundPushToPartner(
-                household.id,
-                currentUserId || '',
-                title,
-                body,
-                '/tasks',
-                NOTIFICATION_TAGS.TASK_COMPLETE
-              );
             }
           }
         }
@@ -307,21 +275,13 @@ export default function App() {
           const currentStore = useStore.getState();
           const currentUserId = currentStore.currentUser?.id;
           const partnerName = currentStore.partnerUser?.name || 'Partner';
-          const isFromPartner = payload.new.user_id ? payload.new.user_id !== currentUserId : payload.new.paid_by !== currentStore.currentUser?.name;
+          const isFromPartner = payload.new.created_by ? payload.new.created_by !== currentUserId : (payload.new.paid_by_name && payload.new.paid_by_name !== currentStore.currentUser?.name);
           if (isFromPartner) {
             const typeLabel = payload.new.type === 'EXPENSE' ? 'expense' : 'income';
-            const paidBy = payload.new.paid_by || partnerName;
+            const paidBy = payload.new.paid_by_name || partnerName;
             const title = `💰 ${typeLabel === 'expense' ? 'Expense' : 'Income'} Logged`;
             const body = `${paidBy} logged ${typeLabel}: "${payload.new.title}"`;
             sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.TRANSACTION });
-            sendBackgroundPushToPartner(
-              household.id,
-              currentUserId || '',
-              title,
-              body,
-              '/budget',
-              NOTIFICATION_TAGS.TRANSACTION
-            );
           }
         }
       })
@@ -333,19 +293,14 @@ export default function App() {
         await fetchHouseholdData(household.id);
           if (payload?.eventType === 'UPDATE' && payload?.new?.status === 'PAID' && payload?.old?.status !== 'PAID') {
             const currentStore = useStore.getState();
-            const currentUserId = currentStore.currentUser?.id;
             const partnerName = currentStore.partnerUser?.name || 'Partner';
-            const title = '🧾 Bill Paid!';
-            const body = `"${payload.new.title}" was marked paid by ${partnerName}`;
-            sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.RECURRING_BILL });
-            sendBackgroundPushToPartner(
-              household.id,
-              currentUserId || '',
-              title,
-              body,
-              '/budget',
-              NOTIFICATION_TAGS.RECURRING_BILL
-            );
+            const paidBy = payload.new.paid_by_name || payload.new.paid_by;
+            const isFromPartner = paidBy && paidBy !== currentStore.currentUser?.name;
+            if (isFromPartner) {
+              const title = '🧾 Bill Paid!';
+              const body = `"${payload.new.title}" was marked paid by ${partnerName}`;
+              sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.RECURRING_BILL });
+            }
           }
       })
       .on('postgres_changes', {
@@ -379,19 +334,11 @@ export default function App() {
           const currentStore = useStore.getState();
           const currentUserId = currentStore.currentUser?.id;
           const partnerName = currentStore.partnerUser?.name || 'Partner';
-          const isFromPartner = payload.new.user_id ? payload.new.user_id !== currentUserId : payload.new.author_name !== currentStore.currentUser?.name;
+          const isFromPartner = payload.new.created_by ? payload.new.created_by !== currentUserId : (payload.new.author_name && payload.new.author_name !== currentStore.currentUser?.name);
           if (isFromPartner) {
             const title = '📓 New Quick Note';
             const body = `${payload.new.author_name || partnerName}: "${payload.new.text}"`;
             sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.QUICK_NOTE });
-            sendBackgroundPushToPartner(
-              household.id,
-              currentUserId || '',
-              title,
-              body,
-              '/',
-              NOTIFICATION_TAGS.QUICK_NOTE
-            );
           }
         }
       })
@@ -403,21 +350,12 @@ export default function App() {
         await fetchHouseholdData(household.id);
         if (payload?.eventType === 'INSERT' && payload?.new) {
           const currentStore = useStore.getState();
-          const currentUserId = currentStore.currentUser?.id;
           const partnerName = currentStore.partnerUser?.name || 'Partner';
-          const isFromPartner = payload.new.paid_by !== currentStore.currentUser?.name;
+          const isFromPartner = payload.new.paid_by && payload.new.paid_by !== currentStore.currentUser?.name;
           if (isFromPartner) {
             const title = '💳 Debt Payment Made';
             const body = `${payload.new.paid_by || partnerName} made a debt payment`;
             sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.DEBT_PAYMENT });
-            sendBackgroundPushToPartner(
-              household.id,
-              currentUserId || '',
-              title,
-              body,
-              '/budget',
-              NOTIFICATION_TAGS.DEBT_PAYMENT
-            );
           }
         }
       })
@@ -429,21 +367,12 @@ export default function App() {
         await fetchHouseholdData(household.id);
         if (payload?.eventType === 'INSERT' && payload?.new) {
           const currentStore = useStore.getState();
-          const currentUserId = currentStore.currentUser?.id;
           const partnerName = currentStore.partnerUser?.name || 'Partner';
-          const isFromPartner = payload.new.contributor_name !== currentStore.currentUser?.name;
+          const isFromPartner = payload.new.contributor_name && payload.new.contributor_name !== currentStore.currentUser?.name;
           if (isFromPartner) {
             const title = '🎯 Savings Deposit Made';
             const body = `${payload.new.contributor_name || partnerName} added to a savings goal!`;
             sendPushNotification(title, body, { tag: NOTIFICATION_TAGS.SAVINGS_DEPOSIT });
-            sendBackgroundPushToPartner(
-              household.id,
-              currentUserId || '',
-              title,
-              body,
-              '/budget',
-              NOTIFICATION_TAGS.SAVINGS_DEPOSIT
-            );
           }
         }
       })

@@ -116,7 +116,7 @@ export async function fetchHouseholdDataFromDB(
       amount: Number(t.amount),
       type: t.type,
       category: t.category,
-      paidBy: t.paid_by as any,
+      paidBy: (t.paid_by_name || t.paid_by || 'Shared') as any,
       account: t.account || 'Moniepoint Joint',
       isShared: t.is_shared,
       date: new Date(t.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
@@ -767,7 +767,7 @@ export async function saveTransactionToDB(tx: Transaction, householdId: string) 
       amount: Number(tx.amount || 0),
       type: tx.type || 'EXPENSE',
       category: tx.category || 'Expenses',
-      paid_by: tx.paidBy,
+      paid_by_name: tx.paidBy,
       account: tx.account || 'Joint Account',
       is_shared: tx.isShared ?? true
     });
@@ -784,7 +784,7 @@ export async function updateTransactionInDB(txId: string, updates: Partial<Trans
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
     if (updates.category !== undefined) dbUpdates.category = updates.category;
-    if (updates.paidBy !== undefined) dbUpdates.paid_by = updates.paidBy;
+    if (updates.paidBy !== undefined) dbUpdates.paid_by_name = updates.paidBy;
 
     if (Object.keys(dbUpdates).length > 0) {
       const { error } = await supabase.from('transactions').update(dbUpdates).eq('id', txId);

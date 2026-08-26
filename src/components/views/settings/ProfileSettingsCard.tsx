@@ -97,7 +97,7 @@ export const ProfileSettingsCard: React.FC<ProfileSettingsCardProps> = ({ onOpen
 
     // This is the direct user gesture → iOS will allow pushManager.subscribe()
     if (currentUser?.id && household?.id) {
-      const sub = await subscribeUserToWebPush(currentUser.id, household.id);
+      const sub = await subscribeUserToWebPush(currentUser.id, household.id, true);
       const newState = getNotificationPermissionState();
       setPermissionState(newState);
       if (sub && newState === 'granted') {

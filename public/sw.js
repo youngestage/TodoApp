@@ -47,7 +47,9 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Couples Studio 💑';
   const body = data.body || 'Something new happened in your shared space.';
   const url = data.url || '/';
-  const tag = data.tag || 'coupletodo-general';
+  // Append timestamp so every notification STACKS as an individual card in the OS notification shade
+  const baseTag = data.tag || 'ct-general';
+  const tag = `${baseTag}-${Date.now()}`;
   const icon = data.icon || '/icon-192.png';
   const badge = data.badge || '/badge-72.png';
   const requireInteraction = data.requireInteraction ?? false;
@@ -56,9 +58,9 @@ self.addEventListener('push', (event) => {
     body,
     icon,
     badge,
-    tag,                       // unique per event type → independent stacking
-    renotify: true,            // alert user even when replacing a same-tag notification
-    requireInteraction,        // keep notification until user explicitly dismisses
+    tag,                       // unique tag → multiple notification cards stack in system tray
+    renotify: true,
+    requireInteraction,
     vibrate: [100, 50, 100, 50, 200],
     silent: false,
     data: { url },
@@ -69,7 +71,16 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(title, options).catch(() => {
+      // Fallback for strict Android / Samsung Internet notification parsers
+      return self.registration.showNotification(title, {
+        body,
+        icon,
+        badge,
+        tag,
+        data: { url }
+      });
+    })
   );
 });
 
