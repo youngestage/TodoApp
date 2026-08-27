@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getUserAvatarUrl } from '../../utils/avatarUtils';
+import { resolvePartners } from '../../utils/identityUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { Avatar } from '../ui/Avatar';
@@ -112,70 +113,62 @@ export const DashboardView: React.FC = () => {
                   className="bg-white rounded-3xl p-4 sm:p-5 border-0 shadow-none flex items-center justify-between gap-3 hover:bg-white/90 transition-all"
                 >
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
-                    {/* Dual Partner Confirmation Check Pills */}
+                    {/* Dual Partner Confirmation Check Pills — role-based, not name-sorted */}
                     {task.isJoint ? (
                       (() => {
-                        const sortedNames = [currentUser.name, partnerUser.name].filter(Boolean).sort();
-                        const userAName = sortedNames[0] || 'Partner A';
-                        const userBName = sortedNames[1] || 'Partner B';
+                        const { userA, userB, iAmA } = resolvePartners(currentUser, partnerUser);
+                        const iCanClickA = iAmA;
+                        const iCanClickB = !iAmA;
 
                         return (
                           <div className="flex items-center space-x-1.5 shrink-0">
-                            {/* Partner A Check Button */}
+                            {/* userA Check Button (partner_a slot) */}
                             <button
                               onClick={() => {
-                                if (currentUser.name === userAName) {
-                                  toggleJointTaskTap(task.id, userAName);
-                                }
+                                if (iCanClickA) toggleJointTaskTap(task.id, userA.name);
                               }}
-                              disabled={currentUser.name !== userAName}
+                              disabled={!iCanClickA}
                               className={`relative w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
-                                currentUser.name !== userAName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                                !iCanClickA ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                               } ${
                                 task.userACompleted
                                   ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
                                   : 'border-gray-200 opacity-60 hover:opacity-100'
                               }`}
-                              title={currentUser.name !== userAName ? `Only ${userAName} can check` : `${userAName}'s Check`}
+                              title={!iCanClickA ? `Only ${userA.name} can check this` : `${userA.name}'s check`}
                             >
-                              <img 
-                                src={getUserAvatarUrl(userAName, currentUser, partnerUser)} 
-                                alt={userAName} 
-                                className="w-full h-full rounded-full object-cover" 
+                              <img
+                                src={getUserAvatarUrl(userA.name, currentUser, partnerUser)}
+                                alt={userA.name}
+                                className="w-full h-full rounded-full object-cover"
                               />
                               {task.userACompleted && (
-                                <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                                  ✓
-                                </div>
+                                <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">✓</div>
                               )}
                             </button>
 
-                            {/* Partner B Check Button */}
+                            {/* userB Check Button (partner_b slot) */}
                             <button
                               onClick={() => {
-                                if (currentUser.name === userBName) {
-                                  toggleJointTaskTap(task.id, userBName);
-                                }
+                                if (iCanClickB) toggleJointTaskTap(task.id, userB.name);
                               }}
-                              disabled={currentUser.name !== userBName}
+                              disabled={!iCanClickB}
                               className={`relative w-8 h-8 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
-                                currentUser.name !== userBName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                                !iCanClickB ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                               } ${
                                 task.userBCompleted
                                   ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
                                   : 'border-gray-200 opacity-60 hover:opacity-100'
                               }`}
-                              title={currentUser.name !== userBName ? `Only ${userBName} can check` : `${userBName}'s Check`}
+                              title={!iCanClickB ? `Only ${userB.name} can check this` : `${userB.name}'s check`}
                             >
-                              <img 
-                                src={getUserAvatarUrl(userBName, currentUser, partnerUser)} 
-                                alt={userBName} 
-                                className="w-full h-full rounded-full object-cover" 
+                              <img
+                                src={getUserAvatarUrl(userB.name, currentUser, partnerUser)}
+                                alt={userB.name}
+                                className="w-full h-full rounded-full object-cover"
                               />
                               {task.userBCompleted && (
-                                <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                                  ✓
-                                </div>
+                                <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">✓</div>
                               )}
                             </button>
                           </div>

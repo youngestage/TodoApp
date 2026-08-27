@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { CloseCircle, Wallet3, TaskSquare, MessageText, MagicStar, People } from 'iconsax-react';
@@ -20,7 +20,13 @@ export const QuickActionSheet: React.FC = () => {
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseCategory, setExpenseCategory] = useState<BudgetCategoryType>('Expenses');
-  const [expensePaidBy, setExpensePaidBy] = useState<string>(currentUser?.name || 'Partner A');
+  const [expensePaidBy, setExpensePaidBy] = useState<string>(currentUser?.name ?? '');
+
+  useEffect(() => {
+    if (currentUser?.name) {
+      setExpensePaidBy(currentUser.name);
+    }
+  }, [currentUser?.name]);
   const [expenseAccount, setExpenseAccount] = useState<string>('Joint Account');
   const [expenseIsShared, setExpenseIsShared] = useState(true);
 
@@ -60,7 +66,7 @@ export const QuickActionSheet: React.FC = () => {
       title: taskTitle,
       category: taskCategory,
       isJoint: taskIsJoint,
-      assignedToName: (taskIsJoint ? 'Both' : (currentUser?.name || 'Leslie')) as any,
+      assignedToName: (taskIsJoint ? 'Both' : currentUser?.name) as any,
       dueDate: taskDueDate,
       priority: taskPriority,
       subTasks: []
@@ -188,8 +194,10 @@ export const QuickActionSheet: React.FC = () => {
                       onChange={(e) => setExpensePaidBy(e.target.value)}
                       className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
                     >
-                      <option value={currentUser?.name || 'Partner A'}>{currentUser?.name || 'Partner A'}</option>
-                      {partnerUser?.name && <option value={partnerUser.name}>{partnerUser.name}</option>}
+                      <option value={currentUser?.name ?? ''}>{currentUser?.name ?? 'Me'}</option>
+                      {partnerUser?.name && partnerUser.name !== 'Waiting for Partner...' && (
+                        <option value={partnerUser.name}>{partnerUser.name}</option>
+                      )}
                     </select>
                   </div>
                 </div>

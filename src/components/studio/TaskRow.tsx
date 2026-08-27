@@ -20,7 +20,7 @@ export const TaskRow: React.FC<TaskRowProps> = ({ task }) => {
   const currentUser = useStore(state => state.currentUser);
   const partnerUser = useStore(state => state.partnerUser);
 
-  const currentUserName = currentUser?.name || 'Partner A';
+  const currentUserName = currentUser?.name ?? '';
 
   const handleToggleSubTask = (subTaskId: string) => {
     toggleSubTask(task.id, subTaskId, currentUserName);

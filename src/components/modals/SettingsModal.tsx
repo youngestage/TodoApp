@@ -121,7 +121,7 @@ export const SettingsModal: React.FC = () => {
                     <Avatar name={currentUser.name} src={currentUser.avatarUrl} size="sm" />
                     <div>
                       <span className="text-xs font-bold text-[#231F1E] block">{currentUser.name} (You)</span>
-                      <span className="text-[10px] text-[#6B6560]">Partner A • Primary</span>
+                      <span className="text-[10px] text-[#6B6560]">Primary Member</span>
                     </div>
                   </div>
                   <span className="w-2 h-2 rounded-full bg-[#4A7C59]" />
@@ -132,7 +132,7 @@ export const SettingsModal: React.FC = () => {
                     <Avatar name={partnerUser.name} src={partnerUser.avatarUrl} size="sm" />
                     <div>
                       <span className="text-xs font-bold text-[#231F1E] block">{partnerUser.name}</span>
-                      <span className="text-[10px] text-[#6B6560]">Partner B • Synced</span>
+                      <span className="text-[10px] text-[#6B6560]">Partner</span>
                     </div>
                   </div>
                   <span className="w-2 h-2 rounded-full bg-[#4A7C59]" />

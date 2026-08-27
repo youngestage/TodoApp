@@ -17,8 +17,8 @@ export interface AuthSlice {
 
 export const defaultUser: User = {
   id: 'usr_me',
-  name: 'Partner A',
-  avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=UserA&backgroundColor=EF713F',
+  name: 'Leslie',
+  avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=Leslie&backgroundColor=EF713F',
   isOnline: true,
   role: 'partner_a'
 };
@@ -29,7 +29,7 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set,
     set({ session });
     if (session?.user) {
       const metadata = session.user.user_metadata || {};
-      const rawFallback = metadata.name || metadata.full_name || session.user.email?.split('@')[0] || 'Partner A';
+      const rawFallback = metadata.name || metadata.full_name || session.user.email?.split('@')[0] || 'User';
       
       set((state: any) => {
         const currentName = state.currentUser?.name;

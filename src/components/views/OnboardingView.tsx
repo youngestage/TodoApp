@@ -185,7 +185,7 @@ export const OnboardingView: React.FC = () => {
 
       const { error: profErr } = await supabase.from('profiles').upsert({
         id: userId,
-        name: name || session?.user?.email?.split('@')[0] || 'Partner A',
+        name: name || session?.user?.email?.split('@')[0] || 'User',
         household_id: hhData.id,
         role: 'partner_a'
       });

@@ -299,13 +299,13 @@ export async function fetchHouseholdDataFromDB(
       name: hh.name,
       inviteCode: hh.invite_code,
       maxMembers: hh.max_members || 2,
-      members: members.length > 0 ? members : [foundCurrentUser || { id: 'usr_me', name: 'Partner A', avatarUrl: '', isOnline: true, role: 'partner_a' }],
+      members: members.length > 0 ? members : [foundCurrentUser || { id: 'usr_me', name: 'Leslie', avatarUrl: '', isOnline: true, role: 'partner_a' }],
       relationshipStartDate: hh.relationship_start_date
         ? new Date(hh.relationship_start_date).toISOString().split('T')[0]
         : (hh.created_at ? new Date(hh.created_at).toISOString().split('T')[0] : '2024-04-14'),
       settleBalance: {
         debtor: partnerUser.name,
-        creditor: foundCurrentUser?.name || 'Partner A',
+        creditor: foundCurrentUser?.name || 'You',
         amount: 0,
         currency: '₦'
       }

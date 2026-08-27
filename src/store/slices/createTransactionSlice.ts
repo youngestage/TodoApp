@@ -14,6 +14,7 @@ import { calculateNextDueDate } from '../../utils/dateUtils';
 import { sendBackgroundPushToPartner } from '../../utils/notifications';
 import { calculateEffectiveAPR } from '../../utils/debtEngine';
 import { calculateRequiredContribution } from '../../utils/savingsEngine';
+import { resolvePaidByName } from '../../utils/identityUtils';
 import { StoreState } from '../useStore';
 import {
   saveRecurringBillToDB,
@@ -114,11 +115,12 @@ export const defaultSubcategories: Record<BudgetCategoryType, string[]> = {
 };
 
 export const defaultPaymentAccounts = [
-  'Opay (Partner A)',
-  'Kuda (Partner B)',
+  'Personal Account',
+  'Joint Account',
+  'Opay',
+  'Kuda',
   'GTBank',
-  'PiggyVest',
-  'Joint Account'
+  'PiggyVest'
 ];
 
 export const defaultRecurringBills: RecurringBill[] = [
@@ -483,10 +485,8 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
     );
 
     if (current.autoLogTransaction !== false) {
-      const currentUserName = get().currentUser?.name || 'Leslie';
-      const paidByTarget = current.paidBy === 'Shared' 
-        ? (currentUserName === 'Asa' ? 'Asa' : 'Leslie') 
-        : (current.paidBy as 'Leslie' | 'Asa');
+      const currentUser = get().currentUser;
+      const paidByTarget = resolvePaidByName(current.paidBy, currentUser);
 
       get().addTransaction({
         title: `Recurring: ${current.title}`,
@@ -573,7 +573,7 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
       principalPaid,
       interestPaid,
       paymentDate: todayStr,
-      paidBy: paidBy || get().currentUser?.name || 'Leslie'
+      paidBy: paidBy || get().currentUser?.name
     };
 
     const nextDueDateObj = new Date(current.nextDueDate || todayStr);
@@ -603,7 +603,7 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
         amount,
         type: 'EXPENSE',
         category: 'Expenses',
-        paidBy: (paidBy || get().currentUser?.name || 'Leslie') as any,
+        paidBy: (paidBy || get().currentUser?.name) as any,
         account: 'Joint Account',
         isShared: true,
         date: 'Just now'
@@ -686,7 +686,7 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
     const newCurrent = (goal.currentAmount || 0) + amount;
     const isCompleted = newCurrent >= goal.targetAmount;
     const todayStr = new Date().toISOString().split('T')[0];
-    const contributor = contributorName || get().currentUser?.name || 'Leslie';
+    const contributor = contributorName || get().currentUser?.name || '';
 
     const contributionRecord: SavingsContribution = {
       id: crypto.randomUUID(),
@@ -748,10 +748,8 @@ export const createTransactionSlice: StateCreator<StoreState, [], [], Transactio
     const stream = get().incomeStreams.find(i => i.id === id);
     if (!stream) return;
 
-    const currentUserName = get().currentUser?.name || 'Leslie';
-    const paidByTarget = stream.earnedBy === 'Joint'
-      ? (currentUserName === 'Asa' ? 'Asa' : 'Leslie')
-      : (stream.earnedBy as 'Leslie' | 'Asa');
+    const currentUser = get().currentUser;
+    const paidByTarget = resolvePaidByName(stream.earnedBy, currentUser);
 
     get().addTransaction({
       title: `Income: ${stream.title}`,

@@ -38,7 +38,7 @@ export const defaultHousehold: Household = {
   members: [],
   settleBalance: {
     debtor: 'Waiting for Partner...',
-    creditor: 'Partner A',
+    creditor: 'You',
     amount: 0,
     currency: '₦'
   }

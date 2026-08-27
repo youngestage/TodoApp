@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { Task, TaskFolder } from '../../types';
 import { sendBackgroundPushToPartner } from '../../utils/notifications';
+import { resolvePartners } from '../../utils/identityUtils';
 import { StoreState } from '../useStore';
 import {
   saveTaskToDB,
@@ -37,10 +38,9 @@ export const createTaskSlice: StateCreator<StoreState, [], [], TaskSlice> = (set
       const updatedTasks = state.tasks.map((task: Task) => {
         if (task.id !== taskId) return task;
 
-        const currentName = state.currentUser?.name || '';
-        const partnerName = state.partnerUser?.name || '';
-        const sortedNames = [currentName, partnerName].filter(Boolean).sort();
-        
+        const currentUser = state.currentUser;
+        const partnerUser = state.partnerUser;
+
         if (!task.isJoint) {
           const completed = !task.completed;
           return {
@@ -50,7 +50,9 @@ export const createTaskSlice: StateCreator<StoreState, [], [], TaskSlice> = (set
           };
         }
 
-        const isUserA = user === sortedNames[0];
+        // Use role to determine slot — partner_a always maps to userACompleted
+        const { userA } = resolvePartners(currentUser, partnerUser);
+        const isUserA = user === userA.name;
         const userACompleted = isUserA ? !task.userACompleted : task.userACompleted;
         const userBCompleted = !isUserA ? !task.userBCompleted : task.userBCompleted;
 

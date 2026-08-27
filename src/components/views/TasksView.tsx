@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getUserAvatarUrl } from '../../utils/avatarUtils';
+import { resolvePartners } from '../../utils/identityUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import {
@@ -176,67 +177,59 @@ export const TasksView: React.FC = () => {
                     <div className="flex items-center space-x-1.5 shrink-0 pt-0.5">
                       {task.isJoint ? (
                         (() => {
-                          const sortedNames = [currentUser.name, partnerUser.name].filter(Boolean).sort();
-                          const userAName = sortedNames[0] || 'Partner A';
-                          const userBName = sortedNames[1] || 'Partner B';
+                          const { userA, userB, iAmA } = resolvePartners(currentUser, partnerUser);
+                          const iCanClickA = iAmA;
+                          const iCanClickB = !iAmA;
 
                           return (
                             <>
-                              {/* Partner A Check Button */}
+                              {/* userA Check Button (partner_a slot) */}
                               <button
                                 onClick={() => {
-                                  if (currentUser.name === userAName) {
-                                    setConfirmAction({ type: 'complete', taskId: task.id, user: userAName });
-                                  }
+                                  if (iCanClickA) setConfirmAction({ type: 'complete', taskId: task.id, user: userA.name });
                                 }}
-                                disabled={currentUser.name !== userAName}
+                                disabled={!iCanClickA}
                                 className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
-                                  currentUser.name !== userAName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                                  !iCanClickA ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                                 } ${
                                   task.userACompleted
                                     ? 'border-[#EF713F] ring-2 ring-[#EF713F]/30 scale-105'
                                     : 'border-gray-200 opacity-60 hover:opacity-100'
                                 }`}
-                                title={currentUser.name !== userAName ? `Only ${userAName} can check their side` : `Your Check`}
+                                title={!iCanClickA ? `Only ${userA.name} can check their side` : 'Your Check'}
                               >
-                                <img 
-                                  src={getUserAvatar(userAName)} 
-                                  alt={userAName} 
-                                  className="w-full h-full rounded-full object-cover" 
+                                <img
+                                  src={getUserAvatar(userA.name)}
+                                  alt={userA.name}
+                                  className="w-full h-full rounded-full object-cover"
                                 />
                                 {task.userACompleted && (
-                                  <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                                    ✓
-                                  </div>
+                                  <div className="absolute inset-0 bg-[#EF713F]/80 flex items-center justify-center text-white font-extrabold text-xs">✓</div>
                                 )}
                               </button>
 
-                              {/* Partner B Check Button */}
+                              {/* userB Check Button (partner_b slot) */}
                               <button
                                 onClick={() => {
-                                  if (currentUser.name === userBName) {
-                                    setConfirmAction({ type: 'complete', taskId: task.id, user: userBName });
-                                  }
+                                  if (iCanClickB) setConfirmAction({ type: 'complete', taskId: task.id, user: userB.name });
                                 }}
-                                disabled={currentUser.name !== userBName}
+                                disabled={!iCanClickB}
                                 className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full transition-all flex items-center justify-center border-2 p-0.5 overflow-hidden ${
-                                  currentUser.name !== userBName ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                                  !iCanClickB ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
                                 } ${
                                   task.userBCompleted
                                     ? 'border-[#4A7C59] ring-2 ring-[#4A7C59]/30 scale-105'
                                     : 'border-gray-200 opacity-60 hover:opacity-100'
                                 }`}
-                                title={currentUser.name !== userBName ? `Only ${userBName} can check their side` : `Your Check`}
+                                title={!iCanClickB ? `Only ${userB.name} can check their side` : 'Your Check'}
                               >
-                                <img 
-                                  src={getUserAvatar(userBName)} 
-                                  alt={userBName} 
-                                  className="w-full h-full rounded-full object-cover" 
+                                <img
+                                  src={getUserAvatar(userB.name)}
+                                  alt={userB.name}
+                                  className="w-full h-full rounded-full object-cover"
                                 />
                                 {task.userBCompleted && (
-                                  <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">
-                                    ✓
-                                  </div>
+                                  <div className="absolute inset-0 bg-[#4A7C59]/80 flex items-center justify-center text-white font-extrabold text-xs">✓</div>
                                 )}
                               </button>
                             </>
