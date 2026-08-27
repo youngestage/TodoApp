@@ -13,8 +13,8 @@ interface CreateIncomeModalProps {
 export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, onClose, editingStream }) => {
   const { addIncomeStream, updateIncomeStream, currentUser, partnerUser } = useStore();
 
-  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
-  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'You';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Partner';
 
   const [title, setTitle] = useState(editingStream?.title || '');
   const [category, setCategory] = useState<IncomeCategory>(editingStream?.category || 'Salary');
@@ -178,7 +178,7 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
                   type="button"
                   onClick={() => setEarnedBy(userAName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    earnedBy === userAName || earnedBy === currentUser?.name || (userAName === 'Leslie' && earnedBy === 'Leslie') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    earnedBy === userAName || earnedBy === currentUser?.name ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userAName}
@@ -188,7 +188,7 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
                   type="button"
                   onClick={() => setEarnedBy(userBName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    earnedBy === userBName || earnedBy === partnerUser?.name || (userBName === 'Asa' && earnedBy === 'Asa') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    earnedBy === userBName || earnedBy === partnerUser?.name ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userBName}

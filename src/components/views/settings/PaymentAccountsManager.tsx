@@ -32,7 +32,7 @@ export const PaymentAccountsManager: React.FC = () => {
             type="text"
             value={newAccountName}
             onChange={(e) => setNewAccountName(e.target.value)}
-            placeholder="E.g. Moniepoint (Leslie)..."
+            placeholder="E.g. Moniepoint (Joint)..."
             className="flex-1 px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
           />
           <button

@@ -33,7 +33,7 @@ export const SpeedLogBar: React.FC = () => {
         type: 'EXPENSE',
         category: 'Expenses',
         paidBy: currentUser.name as any,
-        account: 'Opay (Leslie)',
+        account: 'Joint Account',
         isShared: true,
         date: 'Just now (Speed Log)'
       });
@@ -94,7 +94,7 @@ export const SpeedLogBar: React.FC = () => {
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder='Type or dictate: "₦5,000 for groceries" or "Remind Asa to buy milk"...'
+            placeholder='Type or dictate: "₦5,000 for groceries" or "Remind partner to buy milk"...'
             className="w-full px-4 py-2.5 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] placeholder:text-[#6B6560]/70 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30 border-0 font-sans transition-all pr-10"
           />
 

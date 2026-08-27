@@ -29,8 +29,8 @@ export const IncomeSection: React.FC = () => {
   const [editingStream, setEditingStream] = useState<IncomeStream | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('All');
 
-  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
-  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'You';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Partner';
 
   const filterTabs = [
     { id: 'All', label: 'All' },
@@ -49,14 +49,12 @@ export const IncomeSection: React.FC = () => {
   const isUserA = (name?: string) => {
     if (!name) return false;
     if (name === currentUser.name || name === userAName) return true;
-    if (userAName === 'Leslie' && name === 'Leslie') return true;
     return false;
   };
 
   const isUserB = (name?: string) => {
     if (!name) return false;
     if (name === partnerUser.name || name === userBName) return true;
-    if (userBName === 'Asa' && name === 'Asa') return true;
     return false;
   };
 

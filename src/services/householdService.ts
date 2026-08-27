@@ -210,68 +210,121 @@ export async function fetchHouseholdDataFromDB(
       createdAt: b.created_at
     }));
 
-    // 9. Fetch debt accounts
+    // 9. Fetch debt accounts & debt payments
     const { data: debtsData } = await supabase
       .from('debt_accounts')
       .select('*')
       .eq('household_id', householdId)
       .order('created_at', { ascending: false });
 
-    const debtAccounts: DebtAccount[] = (debtsData || []).map((d) => ({
-      id: d.id,
-      householdId: d.household_id,
-      name: d.name,
-      category: d.category || 'bank_loan',
-      lenderName: d.lender_name,
-      principalAmount: Number(d.principal_amount),
-      balance: Number(d.balance),
-      rateType: d.rate_type || 'flat_monthly',
-      interestRate: Number(d.interest_rate),
-      effectiveAPR: Number(d.effective_apr),
-      repaymentFrequency: d.repayment_frequency || 'monthly',
-      loanTermMonths: d.loan_term_months,
-      repaymentMethod: d.repayment_method || 'bank_transfer',
-      minimumPayment: Number(d.minimum_payment),
-      startDate: d.start_date,
-      nextDueDate: d.next_due_date,
-      dueDate: d.next_due_date,
-      currency: d.currency || '₦',
-      paidBy: d.paid_by || 'Shared',
-      isPrivate: d.is_private || false,
-      notes: d.notes,
-      status: d.status || 'ACTIVE',
-      createdAt: d.created_at
-    }));
+    const debtIds = (debtsData || []).map((d) => d.id);
+    let allPayments: any[] = [];
+    if (debtIds.length > 0) {
+      const { data: paymentsData } = await supabase
+        .from('debt_payments')
+        .select('*')
+        .in('debt_id', debtIds)
+        .order('created_at', { ascending: false });
+      allPayments = paymentsData || [];
+    }
 
-    // 10. Fetch savings goals
+    const debtAccounts: DebtAccount[] = (debtsData || []).map((d) => {
+      const dPayments: DebtPayment[] = allPayments
+        .filter((p) => p.debt_id === d.id)
+        .map((p) => ({
+          id: p.id,
+          debtId: p.debt_id,
+          amount: Number(p.amount),
+          principalPaid: Number(p.principal_paid),
+          interestPaid: Number(p.interest_paid),
+          paymentDate: p.payment_date,
+          paidBy: p.paid_by || undefined,
+          createdAt: p.created_at
+        }));
+
+      return {
+        id: d.id,
+        householdId: d.household_id,
+        name: d.name,
+        category: d.category || 'bank_loan',
+        lenderName: d.lender_name,
+        principalAmount: Number(d.principal_amount),
+        balance: Number(d.balance),
+        rateType: d.rate_type || 'flat_monthly',
+        interestRate: Number(d.interest_rate),
+        effectiveAPR: Number(d.effective_apr),
+        repaymentFrequency: d.repayment_frequency || 'monthly',
+        loanTermMonths: d.loan_term_months,
+        repaymentMethod: d.repayment_method || 'bank_transfer',
+        minimumPayment: Number(d.minimum_payment),
+        startDate: d.start_date,
+        nextDueDate: d.next_due_date,
+        dueDate: d.next_due_date,
+        currency: d.currency || '₦',
+        paidBy: d.paid_by || 'Shared',
+        isPrivate: d.is_private || false,
+        notes: d.notes,
+        status: d.status || 'ACTIVE',
+        payments: dPayments,
+        createdAt: d.created_at
+      };
+    });
+
+    // 10. Fetch savings goals & contributions
     const { data: goalsData } = await supabase
       .from('savings_goals')
       .select('*')
       .eq('household_id', householdId)
       .order('created_at', { ascending: false });
 
-    const savingsGoals: SavingsGoal[] = (goalsData || []).map((g) => ({
-      id: g.id,
-      householdId: g.household_id,
-      name: g.name,
-      icon: g.icon || '🎯',
-      imageUrl: g.image_url,
-      category: g.category || 'General',
-      targetAmount: Number(g.target_amount),
-      currentAmount: Number(g.current_amount),
-      startingBalance: Number(g.starting_balance),
-      currency: g.currency || '₦',
-      targetDate: g.target_date,
-      cadence: g.cadence || 'monthly',
-      suggestedContribution: Number(g.suggested_contribution),
-      ownership: g.ownership || 'joint',
-      externalStorageNote: g.external_storage_note,
-      isPrivate: g.is_private || false,
-      status: g.status || 'ACTIVE',
-      createdAt: g.created_at,
-      goalAmount: Number(g.target_amount),
-      monthlyContribution: Number(g.suggested_contribution)
-    }));
+    const goalIds = (goalsData || []).map((g) => g.id);
+    let allContributions: any[] = [];
+    if (goalIds.length > 0) {
+      const { data: contribsData } = await supabase
+        .from('savings_contributions')
+        .select('*')
+        .in('goal_id', goalIds)
+        .order('created_at', { ascending: false });
+      allContributions = contribsData || [];
+    }
+
+    const savingsGoals: SavingsGoal[] = (goalsData || []).map((g) => {
+      const gContribs: SavingsContribution[] = allContributions
+        .filter((c) => c.goal_id === g.id)
+        .map((c) => ({
+          id: c.id,
+          goalId: c.goal_id,
+          contributorName: c.contributor_name,
+          amount: Number(c.amount),
+          contributionDate: c.contribution_date,
+          note: c.note || undefined,
+          createdAt: c.created_at
+        }));
+
+      return {
+        id: g.id,
+        householdId: g.household_id,
+        name: g.name,
+        icon: g.icon || '🎯',
+        imageUrl: g.image_url,
+        category: g.category || 'General',
+        targetAmount: Number(g.target_amount),
+        currentAmount: Number(g.current_amount),
+        startingBalance: Number(g.starting_balance),
+        currency: g.currency || '₦',
+        targetDate: g.target_date,
+        cadence: g.cadence || 'monthly',
+        suggestedContribution: Number(g.suggested_contribution),
+        ownership: g.ownership || 'joint',
+        externalStorageNote: g.external_storage_note,
+        isPrivate: g.is_private || false,
+        status: g.status || 'ACTIVE',
+        contributions: gContribs,
+        createdAt: g.created_at,
+        goalAmount: Number(g.target_amount),
+        monthlyContribution: Number(g.suggested_contribution)
+      };
+    });
 
     // 11. Fetch income streams
     const { data: incomeData } = await supabase
@@ -299,7 +352,7 @@ export async function fetchHouseholdDataFromDB(
       name: hh.name,
       inviteCode: hh.invite_code,
       maxMembers: hh.max_members || 2,
-      members: members.length > 0 ? members : [foundCurrentUser || { id: 'usr_me', name: 'Leslie', avatarUrl: '', isOnline: true, role: 'partner_a' }],
+      members: members.length > 0 ? members : [foundCurrentUser || { id: 'usr_me', name: 'Partner A', avatarUrl: '', isOnline: true, role: 'partner_a' }],
       relationshipStartDate: hh.relationship_start_date
         ? new Date(hh.relationship_start_date).toISOString().split('T')[0]
         : (hh.created_at ? new Date(hh.created_at).toISOString().split('T')[0] : '2024-04-14'),

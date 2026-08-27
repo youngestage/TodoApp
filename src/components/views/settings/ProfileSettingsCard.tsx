@@ -47,11 +47,11 @@ export const ProfileSettingsCard: React.FC<ProfileSettingsCardProps> = ({ onOpen
   };
 
   const presetAvatars = [
-    'https://api.dicebear.com/7.x/micah/svg?seed=Leslie&backgroundColor=EF713F',
-    'https://api.dicebear.com/7.x/lorelei/svg?seed=LeslieLove&backgroundColor=E9C277',
-    'https://api.dicebear.com/7.x/thumbs/svg?seed=AsaPartner&backgroundColor=BEABD8',
+    'https://api.dicebear.com/7.x/micah/svg?seed=PartnerA&backgroundColor=EF713F',
+    'https://api.dicebear.com/7.x/lorelei/svg?seed=PartnerB&backgroundColor=E9C277',
+    'https://api.dicebear.com/7.x/thumbs/svg?seed=HouseholdUser&backgroundColor=BEABD8',
     'https://api.dicebear.com/7.x/personas/svg?seed=CoupleJoy&backgroundColor=4A7C59',
-    'https://api.dicebear.com/7.x/big-smile/svg?seed=LeslieStudio&backgroundColor=EF713F',
+    'https://api.dicebear.com/7.x/big-smile/svg?seed=StudioUser&backgroundColor=EF713F',
     'https://api.dicebear.com/7.x/fun-emoji/svg?seed=CoupleMagic&backgroundColor=E9C277'
   ];
 
@@ -130,7 +130,7 @@ export const ProfileSettingsCard: React.FC<ProfileSettingsCardProps> = ({ onOpen
 
         <div className="flex items-center space-x-2">
           <div className="flex-1 px-4 py-3 bg-[#F6F3FA] rounded-2xl font-mono text-lg font-extrabold text-[#8964B3] tracking-widest text-center border-0">
-            {household.inviteCode || 'LESLIE-ASA-2026'}
+            {household.inviteCode || 'KEY-2026'}
           </div>
 
           <button

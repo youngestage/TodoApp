@@ -7,6 +7,7 @@ import { DebtStrategySection } from '../finances/DebtStrategySection';
 import { SavingsGoalsSection } from '../finances/SavingsGoalsSection';
 import { IncomeSection } from '../finances/IncomeSection';
 import { ExpensesSection } from '../finances/ExpensesSection';
+import { FinanceCalendarSection } from '../finances/FinanceCalendarSection';
 import {
   Add,
   MessageText,
@@ -27,7 +28,7 @@ export const BudgetView: React.FC = () => {
     openContextualThread
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'All' | 'Expenses' | 'Income' | 'Bills' | 'Debt' | 'Savings'>('All');
+  const [activeTab, setActiveTab] = useState<'All' | 'Calendar' | 'Expenses' | 'Income' | 'Bills' | 'Debt' | 'Savings'>('All');
 
   const handleOpenTransactionForm = () => {
     setQuickActionTab('expense');
@@ -77,9 +78,15 @@ export const BudgetView: React.FC = () => {
 
       {/* 3. Navigation Sub-Tabs */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center space-x-1.5 bg-white p-1 rounded-2xl border-0 overflow-x-auto no-scrollbar max-w-full">
+        <div
+          onWheel={(e) => {
+            if (e.deltaY !== 0) e.currentTarget.scrollLeft += e.deltaY;
+          }}
+          className="flex items-center space-x-1.5 bg-white p-1 rounded-2xl border-0 overflow-x-auto no-scrollbar max-w-full scroll-smooth"
+        >
           {[
             { id: 'All', label: 'All Activity' },
+            { id: 'Calendar', label: 'Calendar & Analytics' },
             { id: 'Expenses', label: 'Expenses' },
             { id: 'Income', label: 'Income' },
             { id: 'Bills', label: 'Subscriptions & Bills' },
@@ -89,7 +96,7 @@ export const BudgetView: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer ${
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-[#231F1E] text-white'
                   : 'text-[#6B6560] hover:text-[#231F1E] bg-transparent'
@@ -109,13 +116,25 @@ export const BudgetView: React.FC = () => {
             ? `${savingsGoals.length} Savings Goals`
             : activeTab === 'Income'
             ? `${incomeStreams.length} Income Sources`
+            : activeTab === 'Calendar'
+            ? 'Analytics Engine'
             : `${filteredTransactions.length} Logged Transactions`}
         </span>
       </div>
 
       {/* 4. Tab Content */}
       <AnimatePresence mode="wait">
-        {activeTab === 'Expenses' ? (
+        {activeTab === 'Calendar' ? (
+          /* Calendar & Analytics Section */
+          <motion.div
+            key="calendar-tab"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+          >
+            <FinanceCalendarSection />
+          </motion.div>
+        ) : activeTab === 'Expenses' ? (
           /* Pure Expenses Section */
           <motion.div
             key="expenses-tab"

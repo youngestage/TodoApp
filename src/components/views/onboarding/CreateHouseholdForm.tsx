@@ -103,7 +103,7 @@ export const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Leslie"
+                    placeholder="Your name..."
                     className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
                   />
                 </div>
@@ -115,7 +115,7 @@ export const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="leslie@coupletodo.app"
+                    placeholder="you@example.com"
                     className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#EF713F]/30"
                   />
                 </div>

@@ -71,7 +71,7 @@ export const JoinHouseholdForm: React.FC<JoinHouseholdFormProps> = ({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Asa"
+                placeholder="Your name..."
                 className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#8964B3]/30"
               />
             </div>
@@ -83,7 +83,7 @@ export const JoinHouseholdForm: React.FC<JoinHouseholdFormProps> = ({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="asa@coupletodo.app"
+                placeholder="you@example.com"
                 className="w-full px-4 py-3 bg-[#FBF9F5] rounded-2xl text-xs sm:text-sm text-[#231F1E] border-0 focus:outline-none focus:ring-2 focus:ring-[#8964B3]/30"
               />
             </div>

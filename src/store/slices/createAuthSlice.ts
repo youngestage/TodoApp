@@ -17,8 +17,8 @@ export interface AuthSlice {
 
 export const defaultUser: User = {
   id: 'usr_me',
-  name: 'Leslie',
-  avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=Leslie&backgroundColor=EF713F',
+  name: '',
+  avatarUrl: 'https://api.dicebear.com/7.x/micah/svg?seed=User&backgroundColor=EF713F',
   isOnline: true,
   role: 'partner_a'
 };

@@ -14,8 +14,8 @@ interface CreateDebtModalProps {
 export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClose, editingDebt }) => {
   const { addDebtAccount, updateDebtAccount, currentUser, partnerUser } = useStore();
 
-  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Leslie';
-  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
+  const userAName = currentUser?.name ? currentUser.name.split(' ')[0] : 'You';
+  const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Partner';
 
   const [name, setName] = useState(editingDebt?.name || '');
   const [category, setCategory] = useState<DebtCategory>(editingDebt?.category || 'bank_loan');
@@ -297,7 +297,7 @@ export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClos
                   type="button"
                   onClick={() => setPaidBy(userAName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    paidBy === userAName || paidBy === currentUser?.name || (userAName === 'Leslie' && paidBy === 'Leslie') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    paidBy === userAName || paidBy === currentUser?.name ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userAName} Only
@@ -307,7 +307,7 @@ export const CreateDebtModal: React.FC<CreateDebtModalProps> = ({ isOpen, onClos
                   type="button"
                   onClick={() => setPaidBy(userBName)}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all ${
-                    paidBy === userBName || paidBy === partnerUser?.name || (userBName === 'Asa' && paidBy === 'Asa') ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
+                    paidBy === userBName || paidBy === partnerUser?.name ? 'bg-[#231F1E] text-white' : 'bg-[#FBF9F5] text-[#6B6560]'
                   }`}
                 >
                   {userBName} Only

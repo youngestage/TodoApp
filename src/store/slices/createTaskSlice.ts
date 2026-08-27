@@ -17,7 +17,7 @@ export interface TaskSlice {
   folders: TaskFolder[];
   taskFilter: 'All' | 'Mine' | 'Partner' | 'Joint';
   setTaskFilter: (filter: 'All' | 'Mine' | 'Partner' | 'Joint') => void;
-  toggleJointTaskTap: (taskId: string, user: 'Leslie' | 'Asa' | string) => void;
+  toggleJointTaskTap: (taskId: string, user: string) => void;
   addTask: (task: Omit<Task, 'id' | 'completed' | 'userACompleted' | 'userBCompleted'>) => void;
   deleteTask: (taskId: string) => void;
   addFolder: (folder: Omit<TaskFolder, 'id'>) => void;

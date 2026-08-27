@@ -16,8 +16,22 @@ export const DailyInsightPage: React.FC<DailyInsightPageProps> = ({ onFinish }) 
   const jointPendingTasks = pendingTasks.filter(t => t.isJoint);
   const dueBills = recurringBills.filter(b => b.status === 'DUE');
 
+  // Compute dynamic greeting based on time of day and current user name
+  const timeGreeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  })();
+
+  const userName = (currentUser?.name && currentUser.name !== 'usr_me')
+    ? currentUser.name
+    : '';
+
+  const greetingHeader = userName ? `${timeGreeting}, ${userName} ✨` : `${timeGreeting} ✨`;
+
   // Dynamic daily review message
-  const fullReview = `Good afternoon, ${currentUser.name} ✨\n\nHere is your Daily Household Review:\n\n• ${dueBills.length} bill${dueBills.length === 1 ? '' : 's'} due this week (${preferences.currency}${dueBills.reduce((s, b) => s + b.amount, 0).toLocaleString()})\n• ${pendingTasks.length} pending task${pendingTasks.length === 1 ? '' : 's'} (${jointPendingTasks.length} joint 2/2 confirm)\n• Settle-up balance: ${household.settleBalance.debtor} owes ${preferences.currency}${household.settleBalance.amount.toLocaleString()}\n\nEverything is synced live with ${partnerUser.name}. Have a wonderful day ahead! 💕`;
+  const fullReview = `${greetingHeader}\n\nHere is your Daily Household Review:\n\n• ${dueBills.length} bill${dueBills.length === 1 ? '' : 's'} due this week (${preferences.currency}${dueBills.reduce((s, b) => s + b.amount, 0).toLocaleString()})\n• ${pendingTasks.length} pending task${pendingTasks.length === 1 ? '' : 's'} (${jointPendingTasks.length} joint 2/2 confirm)\n• Settle-up balance: ${household.settleBalance.debtor} owes ${preferences.currency}${household.settleBalance.amount.toLocaleString()}\n\nEverything is synced live with ${partnerUser.name}. Have a wonderful day ahead! 💕`;
 
   useEffect(() => {
     let charIndex = 0;

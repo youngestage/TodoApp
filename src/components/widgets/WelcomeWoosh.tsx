@@ -9,8 +9,21 @@ export const WelcomeWoosh: React.FC = () => {
   const [showInsightPage, setShowInsightPage] = useState(false);
   const [typedText, setTypedText] = useState('');
 
-  // Address ONLY the authenticated user
-  const fullGreeting = `Good afternoon, ${currentUser.name} ✨`;
+  // Compute dynamic greeting based on time of day and current user name
+  const timeGreeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  })();
+
+  const userName = (currentUser?.name && currentUser.name !== 'usr_me')
+    ? currentUser.name
+    : '';
+
+  const fullGreeting = userName
+    ? `${timeGreeting}, ${userName} ✨`
+    : `${timeGreeting} ✨`;
 
   useEffect(() => {
     // Slower, tactile typewriter effect (65ms per character)
