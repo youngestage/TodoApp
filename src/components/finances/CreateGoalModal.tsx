@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore';
 import { GoalCategory, GoalCadence, GoalOwnership, SavingsGoal } from '../../types';
 import { calculateRequiredContribution } from '../../utils/savingsEngine';
 import { CloseCircle, Cup, InfoCircle } from 'iconsax-react';
+import { CategoryIcon } from '../ui/CategoryIcon';
 
 interface CreateGoalModalProps {
   isOpen: boolean;
@@ -15,8 +16,7 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({ isOpen, onClos
   const { addSavingsGoal, updateSavingsGoal } = useStore();
 
   const [name, setName] = useState(editingGoal?.name || '');
-  const [icon, setIcon] = useState(editingGoal?.icon || '🎯');
-  const [category, setCategory] = useState<GoalCategory>(editingGoal?.category || 'General' as any);
+  const [category, setCategory] = useState<GoalCategory>(editingGoal?.category || 'Rent');
   const [targetAmount, setTargetAmount] = useState(editingGoal?.targetAmount ? String(editingGoal.targetAmount) : '');
   const [startingBalance, setStartingBalance] = useState(editingGoal?.startingBalance ? String(editingGoal.startingBalance) : '0');
   const [currency, setCurrency] = useState(editingGoal?.currency || '₦');
@@ -25,22 +25,6 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({ isOpen, onClos
   const [externalStorageNote, setExternalStorageNote] = useState(editingGoal?.externalStorageNote || '');
   const [ownership, setOwnership] = useState<GoalOwnership>(editingGoal?.ownership || 'joint');
   const [isPrivate, setIsPrivate] = useState(editingGoal?.isPrivate || false);
-
-  const presets = [
-    { name: 'Japa Relocation & Visa', icon: '✈️', category: 'Japa' as const, storage: 'PiggyVest SafeLock (15% p.a.)' },
-    { name: 'Wedding & Reception', icon: '💍', category: 'Wedding' as const, storage: 'Cowrywise Mutual Fund' },
-    { name: 'House Rent Renewal', icon: '🏠', category: 'Rent' as const, storage: 'Kuda Target Savings' },
-    { name: 'Emergency Umbrella Pot', icon: '☂️', category: 'Emergency' as const, storage: 'PiggyVest Flex NGN' },
-    { name: 'New Car Purchase', icon: '🚗', category: 'New Car' as const, storage: 'Bank Fixed Deposit' },
-    { name: 'Anniversary Vacation', icon: '🌴', category: 'Travel' as const, storage: 'Dollar Vault (USD)' }
-  ];
-
-  const applyPreset = (p: typeof presets[0]) => {
-    setName(p.name);
-    setIcon(p.icon);
-    setCategory(p.category);
-    setExternalStorageNote(p.storage);
-  };
 
   const currentVal = parseFloat(startingBalance) || 0;
   const targetVal = parseFloat(targetAmount) || 0;
@@ -52,7 +36,6 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({ isOpen, onClos
 
     const payload = {
       name: name.trim(),
-      icon: icon || '🎯',
       category,
       targetAmount: targetVal,
       startingBalance: currentVal,
@@ -109,47 +92,18 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({ isOpen, onClos
             </button>
           </div>
 
-          {/* Presets */}
-          {!editingGoal && (
-            <div className="space-y-1.5 pt-1">
-              <label className="block text-[11px] font-bold text-[#6B6560] uppercase font-mono tracking-wider">
-                🎯 Nigerian & Couple Savings Presets
-              </label>
-              <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
-                {presets.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => applyPreset(preset)}
-                    className="px-3 py-1.5 rounded-xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-medium whitespace-nowrap border-0 cursor-pointer transition-colors shrink-0 flex items-center space-x-1.5"
-                  >
-                    <span>{preset.icon}</span>
-                    <span>{preset.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            {/* Name & Emoji Icon */}
-            <div className="grid grid-cols-4 gap-3">
-              <div className="space-y-1 col-span-1">
-                <label className="block text-xs font-semibold text-[#6B6560]">Emoji Icon</label>
-                <input
-                  type="text"
-                  value={icon}
-                  onChange={(e) => setIcon(e.target.value)}
-                  className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-center text-lg focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1 col-span-3">
-                <label className="block text-xs font-semibold text-[#6B6560]">Goal Name</label>
+            {/* Goal Name with CategoryIcon Preview */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-[#6B6560]">Goal Name</label>
+              <div className="flex items-center space-x-2">
+                <div className="shrink-0">
+                  <CategoryIcon category={category} title={name} size="md" />
+                </div>
                 <input
                   type="text"
                   required
-                  placeholder="E.g. Japa Relocation Fund, Rent 2026"
+                  placeholder="E.g. Japa Relocation Fund, Rent 2026, New Car"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
@@ -172,8 +126,12 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({ isOpen, onClos
                   <option value="New Car">New Vehicle / Car</option>
                   <option value="Emergency">Emergency Umbrella</option>
                   <option value="Travel">Vacation & Travel</option>
-                  <option value="Education">Education & Tuitions</option>
+                  <option value="Education">Education & Tuition</option>
                   <option value="Gift">Gift & Surprise Pot</option>
+                  <option value="Business">Business & Startup</option>
+                  <option value="Tech/Gadgets">Tech & Gadgets Upgrade</option>
+                  <option value="Investment">Investment & Wealth</option>
+                  <option value="Home Project">Home Project / Renovation</option>
                   <option value="Custom">Custom Goal</option>
                 </select>
               </div>

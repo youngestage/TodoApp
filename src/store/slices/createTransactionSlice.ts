@@ -127,6 +127,8 @@ export const defaultRecurringBills: RecurringBill[] = [
   {
     id: 'b-1',
     title: 'Fibre Internet Unlimited',
+    brandDomain: 'starlink.com',
+    logoUrl: 'https://cdn.brandfetch.io/starlink.com',
     category: 'Bills',
     amount: 25000,
     frequency: 'monthly',
@@ -140,6 +142,8 @@ export const defaultRecurringBills: RecurringBill[] = [
   {
     id: 'b-2',
     title: 'Netflix Premium 4K',
+    brandDomain: 'netflix.com',
+    logoUrl: 'https://cdn.brandfetch.io/netflix.com',
     category: 'Bills',
     amount: 5500,
     frequency: 'monthly',
@@ -152,7 +156,24 @@ export const defaultRecurringBills: RecurringBill[] = [
   },
   {
     id: 'b-3',
+    title: 'Canva Pro Subscription',
+    brandDomain: 'canva.com',
+    logoUrl: 'https://cdn.brandfetch.io/canva.com',
+    category: 'Bills',
+    amount: 5500,
+    frequency: 'monthly',
+    nextDueDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    paidBy: 'Leslie',
+    splitType: 'equal',
+    paymentMethod: 'card',
+    status: 'UPCOMING',
+    autoLogTransaction: true
+  },
+  {
+    id: 'b-4',
     title: 'Spotify Family Plan',
+    brandDomain: 'spotify.com',
+    logoUrl: 'https://cdn.brandfetch.io/spotify.com',
     category: 'Bills',
     amount: 3200,
     frequency: 'monthly',

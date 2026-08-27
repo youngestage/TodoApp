@@ -8,6 +8,7 @@ import { calculateGoalPace } from '../../utils/savingsEngine';
 import { formatFriendlyDate } from '../../utils/dateUtils';
 import { CreateGoalModal } from './CreateGoalModal';
 import { LogContributionModal } from './LogContributionModal';
+import { CategoryIcon } from '../ui/CategoryIcon';
 import {
   Add,
   Archive,
@@ -238,9 +239,7 @@ export const SavingsGoalsSection: React.FC = () => {
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center space-x-3 min-w-0">
-                      <div className="w-12 h-12 rounded-2xl bg-[#F0F7F2] text-2xl flex items-center justify-center shrink-0 shadow-xs">
-                        {goal.icon || '🎯'}
-                      </div>
+                      <CategoryIcon category={goal.category} title={goal.name} size="md" />
 
                       <div className="min-w-0">
                         <div className="flex items-center space-x-2 flex-wrap gap-y-1">

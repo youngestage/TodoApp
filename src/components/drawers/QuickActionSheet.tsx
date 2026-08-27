@@ -314,9 +314,9 @@ export const QuickActionSheet: React.FC = () => {
                       onChange={(e) => setTaskPriority(e.target.value as any)}
                       className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
                     >
-                      <option value="High">High 🔴</option>
-                      <option value="Medium">Medium 🟡</option>
-                      <option value="Low">Low 🟢</option>
+                      <option value="High">High Priority</option>
+                      <option value="Medium">Medium Priority</option>
+                      <option value="Low">Low Priority</option>
                     </select>
                   </div>
                 </div>

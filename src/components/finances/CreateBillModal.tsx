@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { BillFrequency, BillPaymentMethod, BudgetCategoryType, RecurringBill } from '../../types';
 import { CloseCircle, Refresh } from 'iconsax-react';
+import { BrandSearchInput } from '../ui/BrandSearchInput';
+import { BrandLogo } from '../ui/BrandLogo';
+import { inferBrandDomain, getBrandfetchCDNUrl } from '../../services/brandfetchService';
 
 interface CreateBillModalProps {
   isOpen: boolean;
@@ -17,6 +20,8 @@ export const CreateBillModal: React.FC<CreateBillModalProps> = ({ isOpen, onClos
   const userBName = partnerUser?.name && !partnerUser.name.startsWith('Waiting') ? partnerUser.name.split(' ')[0] : 'Asa';
 
   const [title, setTitle] = useState(editingBill?.title || '');
+  const [brandDomain, setBrandDomain] = useState(editingBill?.brandDomain || '');
+  const [logoUrl, setLogoUrl] = useState(editingBill?.logoUrl || '');
   const [category, setCategory] = useState<BudgetCategoryType>(editingBill?.category || 'Bills');
   const [amount, setAmount] = useState(editingBill?.amount ? String(editingBill.amount) : '');
   const [frequency, setFrequency] = useState<BillFrequency>(editingBill?.frequency || 'monthly');
@@ -26,28 +31,44 @@ export const CreateBillModal: React.FC<CreateBillModalProps> = ({ isOpen, onClos
   const [paymentMethod, setPaymentMethod] = useState<BillPaymentMethod>(editingBill?.paymentMethod || 'card');
   const [notes, setNotes] = useState(editingBill?.notes || '');
 
-  const templates = [
-    { title: 'Fibre Internet Unlimited', category: 'Bills' as const, amount: '25000', frequency: 'monthly' as const, icon: '🌐' },
-    { title: 'Netflix Premium 4K', category: 'Bills' as const, amount: '5500', frequency: 'monthly' as const, icon: '🍿' },
-    { title: 'Spotify Family Plan', category: 'Bills' as const, amount: '3200', frequency: 'monthly' as const, icon: '🎵' },
-    { title: 'Electricity Utility Token', category: 'Bills' as const, amount: '15000', frequency: 'monthly' as const, icon: '⚡' },
-    { title: 'Apartment Monthly Rent', category: 'Bills' as const, amount: '150000', frequency: 'monthly' as const, icon: '🏠' },
-    { title: 'Apple iCloud 2TB', category: 'Bills' as const, amount: '1900', frequency: 'monthly' as const, icon: '☁️' }
-  ];
+  useEffect(() => {
+    if (editingBill) {
+      setTitle(editingBill.title || '');
+      setBrandDomain(editingBill.brandDomain || '');
+      setLogoUrl(editingBill.logoUrl || '');
+      setCategory(editingBill.category || 'Bills');
+      setAmount(editingBill.amount ? String(editingBill.amount) : '');
+      setFrequency(editingBill.frequency || 'monthly');
+      setCustomIntervalDays(editingBill.customIntervalDays || 30);
+      setNextDueDate(editingBill.nextDueDate || new Date().toISOString().split('T')[0]);
+      setPaidBy(editingBill.paidBy || 'Shared');
+      setPaymentMethod(editingBill.paymentMethod || 'card');
+      setNotes(editingBill.notes || '');
+    } else {
+      setTitle('');
+      setBrandDomain('');
+      setLogoUrl('');
+    }
+  }, [editingBill, isOpen]);
 
-  const applyTemplate = (tmpl: typeof templates[0]) => {
-    setTitle(tmpl.title);
-    setCategory(tmpl.category);
-    setAmount(tmpl.amount);
-    setFrequency(tmpl.frequency);
+  const handleSelectBrand = (brand: { name: string; domain: string; logoUrl: string }) => {
+    setTitle(brand.name);
+    setBrandDomain(brand.domain);
+    setLogoUrl(brand.logoUrl);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !amount || parseFloat(amount) <= 0) return;
 
+    // Resolve domain if not explicitly set
+    const finalDomain = brandDomain || inferBrandDomain(title.trim()) || undefined;
+    const finalLogoUrl = logoUrl || (finalDomain ? getBrandfetchCDNUrl(finalDomain) : undefined);
+
     const payload: Omit<RecurringBill, 'id'> = {
       title: title.trim(),
+      brandDomain: finalDomain,
+      logoUrl: finalLogoUrl,
       category,
       amount: parseFloat(amount),
       frequency,
@@ -104,40 +125,39 @@ export const CreateBillModal: React.FC<CreateBillModalProps> = ({ isOpen, onClos
             </button>
           </div>
 
-          {/* Quick Templates */}
-          {!editingBill && (
-            <div className="space-y-1.5 pt-1">
-              <label className="block text-[11px] font-bold text-[#6B6560] uppercase font-mono tracking-wider">
-                ⚡ Quick Templates
-              </label>
-              <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
-                {templates.map((tmpl, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => applyTemplate(tmpl)}
-                    className="px-3 py-1.5 rounded-xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-medium whitespace-nowrap border-0 cursor-pointer transition-colors shrink-0 flex items-center space-x-1"
-                  >
-                    <span>{tmpl.icon}</span>
-                    <span>{tmpl.title.split(' ')[0]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            {/* Title */}
+            {/* Brand Search & Preview Row */}
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#6B6560]">Bill / Subscription Name</label>
-              <input
-                type="text"
-                required
-                placeholder="E.g. Netflix, Rent, Electricity"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
-              />
+              <label className="block text-xs font-semibold text-[#6B6560]">
+                Bill / Subscription Name
+              </label>
+
+              <div className="flex items-center space-x-2">
+                <div className="flex-1">
+                  <BrandSearchInput
+                    value={title}
+                    onChange={(val) => {
+                      setTitle(val);
+                      // Clear domain if user completely changes title manually
+                      if (!val) {
+                        setBrandDomain('');
+                        setLogoUrl('');
+                      }
+                    }}
+                    onSelectBrand={handleSelectBrand}
+                    placeholder="Search brand (e.g. Netflix, Spotify, Canva, AEDC...)"
+                  />
+                </div>
+
+                <div className="shrink-0 flex items-center space-x-1">
+                  <BrandLogo
+                    title={title || 'Brand'}
+                    brandDomain={brandDomain}
+                    logoUrl={logoUrl}
+                    size="md"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Amount & Category */}
@@ -226,11 +246,11 @@ export const CreateBillModal: React.FC<CreateBillModalProps> = ({ isOpen, onClos
                   onChange={(e) => setPaymentMethod(e.target.value as any)}
                   className="w-full bg-[#FBF9F5] border-0 rounded-xl p-3 text-xs sm:text-sm text-[#231F1E] focus:outline-none"
                 >
-                  <option value="card">Debit/Credit Card 💳</option>
-                  <option value="bank_transfer">Bank Transfer 🏦</option>
-                  <option value="apple_pay">Apple Pay 🍎</option>
-                  <option value="cash">Cash 💵</option>
-                  <option value="other">Other Tag 🏷️</option>
+                  <option value="card">Debit/Credit Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="apple_pay">Apple Pay</option>
+                  <option value="cash">Cash</option>
+                  <option value="other">Other Payment Method</option>
                 </select>
               </div>
             </div>

@@ -24,20 +24,6 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
   const [earnedBy, setEarnedBy] = useState<string>(editingStream?.earnedBy || 'Shared');
   const [notes, setNotes] = useState(editingStream?.notes || '');
 
-  const presets = [
-    { title: 'Tech / Engineering Salary', category: 'Salary' as const, amount: '1500000' },
-    { title: 'Product Design Freelance', category: 'Freelance' as const, amount: '650000' },
-    { title: 'E-commerce Business Profits', category: 'Business' as const, amount: '350000' },
-    { title: 'Real Estate Rental Income', category: 'Rental Income' as const, amount: '400000' },
-    { title: 'Stock & Mutual Fund Dividends', category: 'Dividends' as const, amount: '150000' }
-  ];
-
-  const applyPreset = (p: typeof presets[0]) => {
-    setTitle(p.title);
-    setCategory(p.category);
-    setAmount(p.amount);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(amount);
@@ -96,26 +82,6 @@ export const CreateIncomeModal: React.FC<CreateIncomeModalProps> = ({ isOpen, on
               <CloseCircle size={22} variant="Broken" />
             </button>
           </div>
-
-          {!editingStream && (
-            <div className="space-y-1.5 pt-1">
-              <label className="block text-[11px] font-bold text-[#6B6560] uppercase font-mono tracking-wider">
-                💵 Quick Income Presets
-              </label>
-              <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
-                {presets.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => applyPreset(preset)}
-                    className="px-3 py-1.5 rounded-xl bg-[#FBF9F5] hover:bg-[#FAF6EB] text-[#231F1E] text-xs font-medium whitespace-nowrap border-0 cursor-pointer transition-colors shrink-0 flex items-center space-x-1.5"
-                  >
-                    <span>{preset.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
             {/* Title */}

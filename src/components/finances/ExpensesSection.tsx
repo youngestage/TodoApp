@@ -10,6 +10,7 @@ import {
   Trash
 } from 'iconsax-react';
 import { getUserAvatarUrl } from '../../utils/avatarUtils';
+import { CategoryIcon } from '../ui/CategoryIcon';
 
 export const ExpensesSection: React.FC = () => {
   const {
@@ -143,9 +144,11 @@ export const ExpensesSection: React.FC = () => {
               className="bg-white rounded-3xl p-5 border-0 shadow-none space-y-3 hover:bg-white/90 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
             >
               <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                <div className="w-11 h-11 rounded-2xl bg-[#FFF5F0] text-[#EF713F] flex items-center justify-center text-xl shrink-0 font-bold">
-                  🛍️
-                </div>
+                <CategoryIcon
+                  category={tx.category}
+                  title={tx.title}
+                  size="md"
+                />
 
                 <div className="space-y-1 min-w-0 flex-1">
                   {editingTx?.id === tx.id ? (

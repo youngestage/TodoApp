@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 import { IncomeStream } from '../../types';
 import { CreateIncomeModal } from './CreateIncomeModal';
+import { CategoryIcon } from '../ui/CategoryIcon';
 import {
   Add,
   Edit2,
@@ -206,9 +207,7 @@ export const IncomeSection: React.FC = () => {
                 className="bg-white rounded-3xl p-5 border-0 shadow-none space-y-3 hover:bg-white/90 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="flex items-center space-x-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-[#F0F7F2] text-[#4A7C59] flex items-center justify-center text-xl shrink-0 font-bold">
-                    💵
-                  </div>
+                  <CategoryIcon category={stream.category} title={stream.title} size="md" />
 
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center space-x-2 flex-wrap gap-y-1">

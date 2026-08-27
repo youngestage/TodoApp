@@ -3,7 +3,7 @@ import { getUserAvatarUrl } from '../../utils/avatarUtils';
 import { resolvePartners } from '../../utils/identityUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../../store/useStore';
-import { Avatar } from '../ui/Avatar';
+import { CategoryIcon } from '../ui/CategoryIcon';
 import { BalanceCardsCarousel, SpeedLogBar, RelationshipClock } from '../widgets';
 import { MessageText, ArrowRight } from 'iconsax-react';
 
@@ -249,7 +249,7 @@ export const DashboardView: React.FC = () => {
                   className="bg-white rounded-3xl p-4 sm:p-5 border-0 shadow-none flex items-center justify-between gap-3 hover:bg-white/90 transition-all"
                 >
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
-                    <Avatar name={tx.paidBy} size="sm" />
+                    <CategoryIcon category={tx.category} title={tx.title} size="sm" />
                     <div className="space-y-0.5 min-w-0 flex-1">
                       <h3 className="font-semibold text-sm text-[#231F1E] truncate">
                         {tx.title}

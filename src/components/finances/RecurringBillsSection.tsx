@@ -5,6 +5,7 @@ import { useStore } from '../../store/useStore';
 import { RecurringBill } from '../../types';
 import { formatFriendlyDate } from '../../utils/dateUtils';
 import { CreateBillModal } from './CreateBillModal';
+import { BrandLogo } from '../ui/BrandLogo';
 import {
   Refresh,
   TickCircle,
@@ -246,9 +247,13 @@ export const RecurringBillsSection: React.FC = () => {
             >
               {/* Left Info */}
               <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                <div className="w-11 h-11 rounded-2xl bg-[#F6F3FA] text-[#8964B3] flex items-center justify-center font-bold text-lg shrink-0">
-                  {bill.icon || '⚡'}
-                </div>
+                <BrandLogo
+                  title={bill.title}
+                  brandDomain={bill.brandDomain}
+                  logoUrl={bill.logoUrl}
+                  fallbackIcon={bill.icon}
+                  size="md"
+                />
 
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center space-x-2 flex-wrap gap-y-1">

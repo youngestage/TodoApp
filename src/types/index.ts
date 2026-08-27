@@ -67,6 +67,8 @@ export interface Transaction {
   isShared: boolean;
   date: string;
   commentsCount?: number;
+  logoUrl?: string;
+  brandDomain?: string;
 }
 
 export type BillFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
@@ -82,6 +84,8 @@ export interface RecurringBill {
   amount: number;
   currency?: string;
   icon?: string;
+  logoUrl?: string;
+  brandDomain?: string;
   notes?: string;
   frequency: BillFrequency;
   customIntervalDays?: number;
@@ -199,6 +203,10 @@ export type GoalCategory =
   | 'Travel'
   | 'Education'
   | 'Gift'
+  | 'Business'
+  | 'Tech/Gadgets'
+  | 'Investment'
+  | 'Home Project'
   | 'Custom';
 
 export type GoalCadence = 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'manual';

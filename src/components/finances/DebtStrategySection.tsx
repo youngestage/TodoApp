@@ -7,6 +7,7 @@ import { simulatePayoffStrategy } from '../../utils/debtEngine';
 import { formatFriendlyDate } from '../../utils/dateUtils';
 import { CreateDebtModal } from './CreateDebtModal';
 import { LogDebtPaymentModal } from './LogDebtPaymentModal';
+import { CategoryIcon } from '../ui/CategoryIcon';
 import {
   Add,
   Danger,
@@ -15,7 +16,8 @@ import {
   TickCircle,
   TrendUp,
   Award,
-  Wallet3
+  Wallet3,
+  Flash,
 } from 'iconsax-react';
 
 export const DebtStrategySection: React.FC = () => {
@@ -200,25 +202,25 @@ export const DebtStrategySection: React.FC = () => {
               <button
                 type="button"
                 onClick={() => updateDebtConfig('Avalanche', extraDebtContribution)}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer flex items-center justify-center space-x-1 ${
-                  debtStrategy === 'Avalanche'
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer flex items-center justify-center space-x-1.5 ${debtStrategy === 'Avalanche'
                     ? 'bg-[#8964B3] text-white shadow-sm'
                     : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
-                }`}
+                  }`}
               >
-                <span>🏔️ Avalanche (Highest APR)</span>
+                <Flash size={15} variant="Bold" />
+                <span>Avalanche (Highest APR)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => updateDebtConfig('Snowball', extraDebtContribution)}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer flex items-center justify-center space-x-1 ${
-                  debtStrategy === 'Snowball'
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer flex items-center justify-center space-x-1.5 ${debtStrategy === 'Snowball'
                     ? 'bg-[#4A7C59] text-white shadow-sm'
                     : 'bg-[#FBF9F5] text-[#6B6560] hover:bg-[#F5F3EF]'
-                }`}
+                  }`}
               >
-                <span>❄️ Snowball (Lowest Balance)</span>
+                <TickCircle size={15} variant="Bold" />
+                <span>Snowball (Lowest Balance)</span>
               </button>
             </div>
           </div>
@@ -255,8 +257,9 @@ export const DebtStrategySection: React.FC = () => {
       {/* 3. Gamified Payoff Timeline Visualizer ("Debts Falling Off") */}
       {simResult.debtsTimeline.length > 0 && (
         <div className="bg-white rounded-3xl p-5 border-0 shadow-none space-y-3">
-          <h3 className="font-bold text-sm text-[#231F1E] flex items-center space-x-1.5">
-            <span>🚀 Projected Debt Elimination Order ({debtStrategy})</span>
+          <h3 className="font-bold text-sm text-[#231F1E] flex items-center space-x-2">
+            <TrendUp size={18} variant="Bold" className="text-[#8964B3]" />
+            <span>Projected Debt Elimination Order ({debtStrategy})</span>
           </h3>
 
           <div className="flex items-center space-x-3 overflow-x-auto pb-2 no-scrollbar">
@@ -287,11 +290,10 @@ export const DebtStrategySection: React.FC = () => {
           <button
             key={tab}
             onClick={() => setActiveFilter(tab)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer ${
-              activeFilter === tab
+            className={`px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border-0 cursor-pointer ${activeFilter === tab
                 ? 'bg-[#231F1E] text-white'
                 : 'text-[#6B6560] hover:text-[#231F1E] bg-transparent'
-            }`}
+              }`}
           >
             {tab}
           </button>
@@ -302,13 +304,13 @@ export const DebtStrategySection: React.FC = () => {
         {filteredDebts.length === 0 ? (
           <div className="p-8 rounded-3xl bg-white text-center space-y-3 border-0">
             <Wallet3 size={32} className="mx-auto text-gray-300" />
-            <p className="font-bold text-base text-[#231F1E]">No active debts under this filter 🎉</p>
+            <p className="font-bold text-base text-[#231F1E]">No active debts under this filter</p>
             <p className="text-xs text-[#6B6560]">You're currently debt free! Tap + Add Debt / Loan to track new accounts.</p>
           </div>
         ) : (
           filteredDebts.map((debt) => {
             const isHighAPR = debt.effectiveAPR >= 50;
-            const percentagePaid = debt.principalAmount > 0 
+            const percentagePaid = debt.principalAmount > 0
               ? Math.min(100, Math.round(((debt.principalAmount - debt.balance) / debt.principalAmount) * 100))
               : 0;
 
@@ -324,9 +326,7 @@ export const DebtStrategySection: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* Left Info */}
                   <div className="flex items-center space-x-3.5 min-w-0 flex-1">
-                    <div className="w-11 h-11 rounded-2xl bg-[#FFF5F0] text-[#EF713F] flex items-center justify-center font-bold text-lg shrink-0">
-                      🏛️
-                    </div>
+                    <CategoryIcon category={debt.category} title={debt.name} size="md" />
 
                     <div className="space-y-1 min-w-0 flex-1">
                       <div className="flex items-center space-x-2 flex-wrap gap-y-1">
